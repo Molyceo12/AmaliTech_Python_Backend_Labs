@@ -1,0 +1,25 @@
+{
+    "books": [
+        {
+            "title": "sam",
+            "isbn": "1212",
+            "category": "Poetry",
+            "book_type": "Hardcover",
+            "year": 2000,
+            "copies": 40,
+            "author": {
+                "name": "sam",
+                "nationality": "Rwanda",
+                "birth_year": 2002
+            }
+        }
+    ],
+    "authors": [
+        {
+            "name": "sam",
+            "nationality": "Rwanda",
+            "birth_year": 2002
+        }
+    ],
+    "borrows": []
+}
