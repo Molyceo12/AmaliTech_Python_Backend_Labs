@@ -1,8 +1,23 @@
+"""Utility functions for the Library Management System.
+
+This module provides helper functions for the CLI including:
+- Book availability calculations
+- Search and filter operations
+- CLI handlers for add/list/borrow/return/delete operations
+- Report generation (available, borrowed, by author)
+- Display formatting utilities
+"""
+
 from author import Author
 from book import Book, Categories, EBook, AudioBook
 from borrower import Borrower
-from storage import load_data, save_data
 from datetime import date
+
+
+def __save_data(books, authors, borrowers):
+    """Lazy import to avoid circular dependency with storage module."""
+    from storage import save_data
+    _save_data(books, authors, borrowers)
 
 
 def get_available_copies(book: Book, borrowers: list[Borrower]) -> int:
@@ -188,7 +203,7 @@ def add_book(books, authors, borrowers):
             return
 
     books.append(book)
-    save_data(books, authors, borrowers)
+    _save_data(books, authors, borrowers)
     print("Book added successfully.")
 
 
@@ -339,8 +354,13 @@ def borrow_book(books, borrowers, authors):
         print("Borrower not found. Please register first.")
         return
 
-    record = borrower.borrow_book(book_to_borrow.isbn)
-    save_data(books, authors, borrowers)
+    try:
+        record = borrower.borrow_book(book_to_borrow.isbn)
+    except ValueError as e:
+        print(f"Cannot borrow: {e}")
+        return
+
+    _save_data(books, authors, borrowers)
     print(f"Book borrowed successfully! Due date: {record['due_date']}")
 
 
@@ -367,7 +387,7 @@ def return_book(books, borrowers, authors):
 
     record = borrower.return_book(book_to_return.isbn)
     if record:
-        save_data(books, authors, borrowers)
+        _save_data(books, authors, borrowers)
         print("Book returned successfully.")
     else:
         print("No active borrow record found for this book and borrower.")
@@ -530,6 +550,107 @@ def filter_books_cli(books, borrowers):
         print("No books match the filter criteria.")
 
 
+def generate_available_books_report(books, borrowers):
+    """Generate report of books with available copies."""
+    available = [b for b in books if get_available_copies(b, borrowers) > 0]
+    if not available:
+        print("No available books.")
+        return
+    headers = ["#", "Title", "Author", "ISBN", "Category", "Type", "Year", "Copies", "Avail"]
+    rows = [
+        [
+            i,
+            b.title,
+            b.author.name,
+            b.isbn,
+            b.category.value if b.category else "",
+            type(b).__name__,
+            b.year or "",
+            b.copies,
+            get_available_copies(b, borrowers),
+        ]
+        for i, b in enumerate(available, 1)
+    ]
+    widths = [
+        max(len(str(r[i])) for r in [headers] + rows) for i in range(len(headers))
+    ]
+    print(f"\nAvailable Books Report ({len(available)} total):")
+    print(_fmt_row(widths, headers))
+    print("  ".join("-" * w for w in widths))
+    for row in rows:
+        print(_fmt_row(widths, row))
+
+
+def generate_borrowed_books_report(books, borrowers):
+    """Generate report of books currently borrowed."""
+    borrowed = [b for b in books if get_borrowed_count(b, borrowers) > 0]
+    if not borrowed:
+        print("No borrowed books.")
+        return
+    headers = ["#", "Title", "Author", "ISBN", "Category", "Type", "Year", "Copies", "Borrowed"]
+    rows = [
+        [
+            i,
+            b.title,
+            b.author.name,
+            b.isbn,
+            b.category.value if b.category else "",
+            type(b).__name__,
+            b.year or "",
+            b.copies,
+            get_borrowed_count(b, borrowers),
+        ]
+        for i, b in enumerate(borrowed, 1)
+    ]
+    widths = [
+        max(len(str(r[i])) for r in [headers] + rows) for i in range(len(headers))
+    ]
+    print(f"\nBorrowed Books Report ({len(borrowed)} total):")
+    print(_fmt_row(widths, headers))
+    print("  ".join("-" * w for w in widths))
+    for row in rows:
+        print(_fmt_row(widths, row))
+
+
+def generate_books_by_author_report(books, borrowers):
+    """Generate report of books grouped by author."""
+    from collections import defaultdict
+    by_author = defaultdict(list)
+    for b in books:
+        by_author[b.author.name].append(b)
+    if not by_author:
+        print("No books in library.")
+        return
+    print(f"\nBooks by Author Report ({len(books)} total books, {len(by_author)} authors):")
+    for author_name, author_books in sorted(by_author.items()):
+        print(f"\n  Author: {author_name} ({len(author_books)} books)")
+        for b in author_books:
+            avail = get_available_copies(b, borrowers)
+            borrowed = get_borrowed_count(b, borrowers)
+            print(f"    - {b.title} (ISBN: {b.isbn}) | Type: {type(b).__name__} | Year: {b.year or 'N/A'} | Copies: {b.copies} | Avail: {avail} | Borrowed: {borrowed}")
+
+
+def reports_menu(books, borrowers, authors):
+    """Display reports submenu and handle user selection."""
+    while True:
+        print("\n--- Reports ---")
+        print("1. Available Books")
+        print("2. Borrowed Books")
+        print("3. Books by Author")
+        print("0. Back to Main Menu")
+        choice = input("Enter choice: ").strip()
+        if choice == "1":
+            generate_available_books_report(books, borrowers)
+        elif choice == "2":
+            generate_borrowed_books_report(books, borrowers)
+        elif choice == "3":
+            generate_books_by_author_report(books, borrowers)
+        elif choice == "0":
+            break
+        else:
+            print("Invalid choice.")
+
+
 def delete_book(books, borrowers, authors):
     """Delete a book by ISBN if it has no active borrows."""
     isbn = input("Enter ISBN of the book to delete: ").strip()
@@ -546,5 +667,5 @@ def delete_book(books, borrowers, authors):
         return
 
     books.remove(book)
-    save_data(books, authors, borrowers)
+    _save_data(books, authors, borrowers)
     print(f"Book '{book.title}' deleted successfully.")

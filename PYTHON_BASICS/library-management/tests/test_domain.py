@@ -14,10 +14,11 @@ class TestAuthor:
         assert author.name == "Test Author"
         assert author.nationality == "USA"
         assert author.birth_year == 1980
+        assert author.author_id is not None
 
     def test_author_get_id(self):
         author = Author("Test Author", "USA", 1980)
-        assert author.get_id() == "Test Author"
+        assert author.get_id() == author.author_id
 
     def test_author_to_dict(self):
         author = Author("Test Author", "USA", 1980)
@@ -25,6 +26,7 @@ class TestAuthor:
         assert data["name"] == "Test Author"
         assert data["nationality"] == "USA"
         assert data["birth_year"] == 1980
+        assert "author_id" in data
 
     def test_author_from_dict(self):
         data = {"name": "Test Author", "nationality": "USA", "birth_year": 1980}
@@ -32,6 +34,7 @@ class TestAuthor:
         assert author.name == "Test Author"
         assert author.nationality == "USA"
         assert author.birth_year == 1980
+        assert author.author_id is not None
 
 
 class TestBook:

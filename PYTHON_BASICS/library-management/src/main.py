@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Library Management System - Main Entry Point"""
+"""Library Management System - Main Entry Point.
+
+This module provides the command-line interface (CLI) for the Library
+Management System. It loads data from storage, displays the main menu,
+and dispatches user actions to the appropriate handler functions in utils.
+"""
 
 from utils import (
     add_book,
@@ -14,6 +19,7 @@ from utils import (
     search_book_cli,
     filter_books_cli,
     delete_book,
+    reports_menu,
 )
 from storage import load_data, save_data
 
@@ -34,7 +40,8 @@ def cli():
         "9": lambda: list_borrower_history(books, borrowers),
         "10": lambda: search_book_cli(books),
         "11": lambda: filter_books_cli(books, borrowers),
-        "12": lambda: delete_book(books, borrowers, authors),
+        "12": lambda: reports_menu(books, borrowers, authors),
+        "13": lambda: delete_book(books, borrowers, authors),
         "0": lambda: (save_data(books, authors, borrowers), print("Exiting...")),
     }
 
@@ -51,7 +58,8 @@ def cli():
         print("9. View borrower history")
         print("10. Search a book")
         print("11. Filter records")
-        print("12. Delete a book")
+        print("12. Reports")
+        print("13. Delete a book")
         print("0. Exit")
 
         choice = input("Enter your choice: ")

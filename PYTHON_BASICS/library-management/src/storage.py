@@ -1,3 +1,10 @@
+"""Data persistence layer for the Library Management System.
+
+This module handles loading and saving library data (books, authors, borrowers)
+to and from a JSON file. It uses the domain models' to_dict and from_dict
+methods for serialization and deserialization.
+"""
+
 import json
 from datetime import date, timedelta
 from pathlib import Path

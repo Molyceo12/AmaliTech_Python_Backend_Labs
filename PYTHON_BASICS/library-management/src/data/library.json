@@ -4,7 +4,6 @@
             "title": "ds",
             "isbn": "12",
             "category": "Romance",
-            "book_type": "Ebook",
             "year": 12,
             "copies": 12,
             "author": {
@@ -17,7 +16,6 @@
             "title": "wew",
             "isbn": "3",
             "category": "General",
-            "book_type": "Hardcover",
             "year": 2,
             "copies": 2,
             "author": {
@@ -30,7 +28,6 @@
             "title": "ww",
             "isbn": "fhf",
             "category": "Fantasy",
-            "book_type": "Ebook",
             "year": null,
             "copies": 4646,
             "author": {
@@ -43,7 +40,6 @@
             "title": "Maths",
             "isbn": "SSSSS02",
             "category": "General",
-            "book_type": "Hardcover",
             "year": 2022,
             "copies": 10,
             "author": {
@@ -56,7 +52,6 @@
             "title": "Math",
             "isbn": "FF001",
             "category": "Science",
-            "book_type": "Hardcover",
             "year": 2022,
             "copies": 10,
             "author": {
@@ -69,13 +64,232 @@
             "title": "Biology",
             "isbn": "F006",
             "category": "Biography",
-            "book_type": "Ebook",
             "year": 2024,
             "copies": 10,
             "author": {
                 "name": "Sarah",
                 "nationality": "Rwanda",
                 "birth_year": 2000
+            }
+        },
+        {
+            "title": "Test EBook",
+            "isbn": "9999999999",
+            "category": "Fiction",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "USA",
+                "birth_year": 1990
+            }
+        },
+        {
+            "title": "Test AudioBook",
+            "isbn": "8888888888",
+            "category": "Science Fiction",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "USA",
+                "birth_year": 1990
+            }
+        },
+        {
+            "title": "Test EBook",
+            "isbn": "9999999999",
+            "category": "Fiction",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "USA",
+                "birth_year": 1990
+            }
+        },
+        {
+            "title": "Test AudioBook",
+            "isbn": "8888888888",
+            "category": "Science Fiction",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "USA",
+                "birth_year": 1990
+            }
+        },
+        {
+            "title": "New Book",
+            "isbn": "9999999999",
+            "category": "Fiction",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "Canada",
+                "birth_year": 1990
+            }
+        },
+        {
+            "title": "New EBook",
+            "isbn": "8888888888",
+            "category": "Science Fiction",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "Canada",
+                "birth_year": 1990
+            },
+            "book_class": "EBook",
+            "file_size_mb": 10.0
+        },
+        {
+            "title": "New AudioBook",
+            "isbn": "7777777777",
+            "category": "Fantasy",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "Canada",
+                "birth_year": 1990
+            },
+            "book_class": "AudioBook",
+            "duration_minutes": 200
+        },
+        {
+            "title": "New Book",
+            "isbn": "9999999999",
+            "category": "Fiction",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "Canada",
+                "birth_year": 1990
+            }
+        },
+        {
+            "title": "New EBook",
+            "isbn": "8888888888",
+            "category": "Science Fiction",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "Canada",
+                "birth_year": 1990
+            },
+            "book_class": "EBook",
+            "file_size_mb": 10.0
+        },
+        {
+            "title": "New AudioBook",
+            "isbn": "7777777777",
+            "category": "Fantasy",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "Canada",
+                "birth_year": 1990
+            },
+            "book_class": "AudioBook",
+            "duration_minutes": 200
+        },
+        {
+            "title": "New Book",
+            "isbn": "9999999999",
+            "category": "Fiction",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "Canada",
+                "birth_year": 1990
+            }
+        },
+        {
+            "title": "New EBook",
+            "isbn": "8888888888",
+            "category": "Science Fiction",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "Canada",
+                "birth_year": 1990
+            },
+            "book_class": "EBook",
+            "file_size_mb": 10.0
+        },
+        {
+            "title": "New AudioBook",
+            "isbn": "7777777777",
+            "category": "Fantasy",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "Canada",
+                "birth_year": 1990
+            },
+            "book_class": "AudioBook",
+            "duration_minutes": 200
+        },
+        {
+            "title": "New Book",
+            "isbn": "9999999999",
+            "category": "Fiction",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "Canada",
+                "birth_year": 1990
+            }
+        },
+        {
+            "title": "New EBook",
+            "isbn": "8888888888",
+            "category": "Science Fiction",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "Canada",
+                "birth_year": 1990
+            },
+            "book_class": "EBook",
+            "file_size_mb": 10.0
+        },
+        {
+            "title": "New AudioBook",
+            "isbn": "7777777777",
+            "category": "Fantasy",
+            "year": 2024,
+            "copies": 1,
+            "author": {
+                "name": "New Author",
+                "nationality": "Canada",
+                "birth_year": 1990
+            },
+            "book_class": "AudioBook",
+            "duration_minutes": 200
+        },
+        {
+            "title": "maurice",
+            "isbn": "202",
+            "category": "General",
+            "year": 2000,
+            "copies": 40,
+            "author": {
+                "name": "maurice",
+                "nationality": "rwanda",
+                "birth_year": 2002
             }
         }
     ],
@@ -119,85 +333,111 @@
             "name": "Sarah",
             "nationality": "Rwanda",
             "birth_year": 2000
+        },
+        {
+            "name": "maurice",
+            "nationality": "rwanda",
+            "birth_year": 2002
         }
     ],
-    "borrows": [
+    "borrowers": [
         {
-            "borrower_name": "Patrick",
-            "book_title": "Networking",
-            "borrow_date": "2025-11-24",
-            "return_date": null,
-            "due_date": "2025-12-08"
+            "member_id": "M001",
+            "name": "Test User",
+            "email": "test@example.com",
+            "phone": null,
+            "borrowed": []
         },
         {
-            "borrower_name": "Gad",
-            "book_title": "Maths",
-            "borrow_date": "2025-11-24",
-            "return_date": "2025-11-24",
-            "due_date": "2025-12-08"
+            "member_id": "M001",
+            "name": "Test User",
+            "email": "test@example.com",
+            "phone": null,
+            "borrowed": []
         },
         {
-            "borrower_name": "Niyonkuru",
-            "book_title": "Geography",
-            "borrow_date": "2025-11-24",
-            "return_date": null,
-            "due_date": "2025-12-08"
+            "member_id": "M002",
+            "name": "Test User 2",
+            "email": "test2@example.com",
+            "phone": null,
+            "borrowed": [
+                {
+                    "isbn": "Test Book",
+                    "borrow_date": "2026-10-12",
+                    "due_date": "2026-10-26",
+                    "return_date": null
+                }
+            ]
         },
         {
-            "borrower_name": "Dunia",
-            "book_title": "English",
-            "borrow_date": "2025-11-24",
-            "return_date": null,
-            "due_date": "2025-12-08"
+            "member_id": "M999",
+            "name": "New Member",
+            "email": "new@example.com",
+            "phone": null,
+            "borrowed": [
+                {
+                    "isbn": "New Book",
+                    "borrow_date": "2026-10-12",
+                    "due_date": "2026-10-26",
+                    "return_date": null
+                }
+            ]
         },
         {
-            "borrower_name": "Dieu",
-            "book_title": "romance",
-            "borrow_date": "2025-11-24",
-            "return_date": "2025-11-24",
-            "due_date": "2025-12-08"
+            "member_id": "M999",
+            "name": "New Member",
+            "email": "new@example.com",
+            "phone": null,
+            "borrowed": [
+                {
+                    "isbn": "9999999999",
+                    "borrow_date": "2026-10-12",
+                    "due_date": "2026-10-26",
+                    "return_date": null
+                }
+            ]
         },
         {
-            "borrower_name": "amos",
-            "book_title": "Chemistry level 4",
-            "borrow_date": "2026-07-08",
-            "return_date": "2026-07-17",
-            "due_date": "2026-07-22"
+            "member_id": "M999",
+            "name": "New Member",
+            "email": "new@example.com",
+            "phone": null,
+            "borrowed": [
+                {
+                    "isbn": "9999999999",
+                    "borrow_date": "2026-10-12",
+                    "due_date": "2026-10-26",
+                    "return_date": null
+                }
+            ]
         },
         {
-            "borrower_name": "S6 Math",
-            "book_title": "Math",
-            "borrow_date": "2026-07-16",
-            "return_date": "2026-07-16",
-            "due_date": "2026-07-30"
+            "member_id": "M999",
+            "name": "New Member",
+            "email": "new@example.com",
+            "phone": null,
+            "borrowed": [
+                {
+                    "isbn": "9999999999",
+                    "borrow_date": "2026-10-12",
+                    "due_date": "2026-10-26",
+                    "return_date": null
+                }
+            ]
         },
         {
-            "borrower_name": "Ndaziramiye",
-            "book_title": "Maths",
-            "borrow_date": "2026-07-17",
-            "return_date": null,
-            "due_date": "2026-07-31"
-        },
-        {
-            "borrower_name": "Amos",
-            "book_title": "Math",
-            "borrow_date": "2026-07-17",
-            "return_date": "2026-07-17",
-            "due_date": "2026-07-31"
-        },
-        {
-            "borrower_name": "amos",
-            "book_title": "Chemistry level 4",
-            "borrow_date": "2026-07-17",
-            "return_date": "2026-07-17",
-            "due_date": "2026-07-31"
-        },
-        {
-            "borrower_name": "irimaso",
-            "book_title": "ds",
-            "borrow_date": "2026-10-09",
-            "return_date": null,
-            "due_date": "2026-10-23"
+            "member_id": "202",
+            "name": "maurice",
+            "email": "irimasomaurice@gmail.com",
+            "phone": "3030030",
+            "borrowed": [
+                {
+                    "isbn": "202",
+                    "borrow_date": "2026-10-12",
+                    "due_date": "2026-10-26",
+                    "return_date": null
+                }
+            ]
         }
     ]
 }

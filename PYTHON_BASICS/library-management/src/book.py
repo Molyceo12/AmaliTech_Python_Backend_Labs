@@ -1,3 +1,10 @@
+"""Book data models for the Library Management System.
+
+This module defines the Book base class and its subclasses EBook and AudioBook,
+along with the Categories enum for book classification. All book classes inherit
+from LibraryResource to provide a common interface for persistence and display.
+"""
+
 from datetime import date
 from enum import Enum
 

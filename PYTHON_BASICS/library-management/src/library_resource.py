@@ -1,3 +1,11 @@
+"""Abstract base class for all library resources.
+
+This module defines the LibraryResource abstract base class that provides
+a common interface for all library domain objects (Book, Author, Borrower).
+It enforces implementation of serialization, display, identification, and
+comparison methods across all subclasses.
+"""
+
 from abc import ABC, abstractmethod
 
 

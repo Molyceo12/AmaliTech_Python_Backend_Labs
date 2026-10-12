@@ -1,3 +1,10 @@
+"""Borrower data model for the Library Management System.
+
+This module defines the Borrower class which represents a library member
+with their borrowing history. It inherits from LibraryResource to provide
+a common interface for persistence and display.
+"""
+
 from datetime import date, timedelta
 
 from library_resource import LibraryResource
