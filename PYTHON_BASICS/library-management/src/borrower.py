@@ -1,4 +1,5 @@
 import json
+from dataclasses import dataclass, asdict
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -9,8 +10,43 @@ DATA_FILE = Path("data/library.json")
 DATA_FILE.parent.mkdir(exist_ok=True)
 
 
+@dataclass
+class BorrowRecord:
+    """Represents a single book borrowing transaction."""
+    book_title: str
+    borrow_date: date
+    due_date: date
+    return_date: date = None
+
+    def is_overdue(self):
+        return self.return_date is None and date.today() > self.due_date
+
+    def mark_returned(self):
+        self.return_date = date.today()
+
+    def to_dict(self):
+        return {
+            "book_title": self.book_title,
+            "borrow_date": str(self.borrow_date),
+            "due_date": str(self.due_date),
+            "return_date": str(self.return_date) if self.return_date else None,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        borrow_date = date.fromisoformat(data["borrow_date"]) if data.get("borrow_date") else date.today()
+        due_date = date.fromisoformat(data["due_date"]) if data.get("due_date") else borrow_date + timedelta(days=14)
+        return_date = date.fromisoformat(data["return_date"]) if data.get("return_date") else None
+        return cls(
+            book_title=data["book_title"],
+            borrow_date=borrow_date,
+            due_date=due_date,
+            return_date=return_date,
+        )
+
+
 class Borrower(LibraryResource):
-    """Represents a library member/borrower."""
+    """Represents a library member/borrower with their borrowing history."""
 
     def __init__(self, member_id, name, email, phone=None):
         if not member_id or not str(member_id).strip():
@@ -24,10 +60,42 @@ class Borrower(LibraryResource):
         self.name = name.strip()
         self.email = email.strip()
         self.phone = phone.strip() if phone else None
+        self.borrowed_books = []  # list of BorrowRecord
+
+    def borrow_book(self, book_title):
+        """Create a new borrow record for a book."""
+        record = BorrowRecord(
+            book_title=book_title,
+            borrow_date=date.today(),
+            due_date=date.today() + timedelta(days=14),
+        )
+        self.borrowed_books.append(record)
+        return record
+
+    def return_book(self, book_title):
+        """Mark a borrowed book as returned."""
+        for record in self.borrowed_books:
+            if record.book_title == book_title and record.return_date is None:
+                record.mark_returned()
+                return record
+        return None
+
+    def get_active_borrows(self):
+        """Return list of unreturned borrow records."""
+        return [r for r in self.borrowed_books if r.return_date is None]
+
+    def get_borrow_history(self):
+        """Return all borrow records."""
+        return self.borrowed_books
+
+    def has_overdue_books(self):
+        """Check if borrower has any overdue books."""
+        return any(r.is_overdue() for r in self.borrowed_books)
 
     def __str__(self):
         phone_str = f" | Phone: {self.phone}" if self.phone else ""
-        return f"  [Borrower] ID: {self.member_id} | Name: {self.name} | Email: {self.email}{phone_str}"
+        active = len(self.get_active_borrows())
+        return f"  [Borrower] ID: {self.member_id} | Name: {self.name} | Email: {self.email}{phone_str} | Active borrows: {active}"
 
     def __repr__(self):
         return f"Borrower(member_id={self.member_id}, name={self.name}, email={self.email}, phone={self.phone})"
@@ -36,65 +104,6 @@ class Borrower(LibraryResource):
         if not isinstance(other, Borrower):
             return False
         return self.member_id == other.member_id
-
-
-class Borrow(LibraryResource):
-    """Represents a book borrowing record."""
-
-    def __init__(
-        self,
-        member_id,
-        book_title,
-        borrow_date=None,
-        return_date=None,
-        due_date=None,
-    ):
-        if not member_id or not str(member_id).strip():
-            raise ValueError("Member ID cannot be empty")
-        if not book_title or not str(book_title).strip():
-            raise ValueError("Book title cannot be empty")
-        super().__init__(member_id)
-        self.member_id = member_id.strip()
-        self.book_title = book_title.strip()
-        self.borrow_date = borrow_date or date.today()
-        self.due_date = due_date or self.borrow_date + timedelta(days=14)
-        self.return_date = return_date
-
-    def is_overdue(self):
-        """Return True if the book is past its due date and not yet returned."""
-        return self.return_date is None and date.today() > self.due_date
-
-    def mark_returned(self):
-        """Mark this borrow record as returned today."""
-        self.return_date = date.today()
-
-    def __str__(self):
-        status = (
-            "Returned"
-            if self.return_date
-            else ("Overdue" if self.is_overdue() else "Borrowed")
-        )
-        return (
-            f"  [Borrow] Member ID: {self.member_id} | Book: {self.book_title} "
-            f"| Borrowed: {self.borrow_date} | Due: {self.due_date} "
-            f"| Returned: {self.return_date or 'N/A'} | Status: {status}"
-        )
-
-    def __repr__(self):
-        return (
-            f"Borrow(member_id={self.member_id}, book_title={self.book_title}, "
-            f"borrow_date={self.borrow_date}, return_date={self.return_date}, due_date={self.due_date})"
-        )
-
-    def __eq__(self, other):
-        if not isinstance(other, Borrow):
-            return False
-        return (
-            self.member_id == other.member_id
-            and self.book_title == other.book_title
-            and self.borrow_date == other.borrow_date
-            and self.return_date == other.return_date
-        )
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -106,13 +115,6 @@ def _safe_int(value):
         return int(value)
     except (ValueError, TypeError):
         return None
-
-
-def _parse_date(value):
-    """Return a date from an ISO string, or None if missing/invalid."""
-    if value and value != "None":
-        return date.fromisoformat(value)
-    return None
 
 
 # ── serialization ─────────────────────────────────────────────────────────────
@@ -147,7 +149,6 @@ def _deserialize_book(data):
     """Convert a dict from JSON back to a Book object."""
     a = data["author"]
     author = Author(a["name"], a.get("nationality"), _safe_int(a.get("birth_year")))
-    # Support both old format (book_type) and new format (book_class)
     book_class = data.get("book_class") or ("Book" if data.get("book_type") else "Book")
     base_args = {
         "title": data["title"],
@@ -190,70 +191,47 @@ def _serialize_borrower(borrower):
         "name": borrower.name,
         "email": borrower.email,
         "phone": borrower.phone,
+        "borrowed_books": [r.to_dict() for r in borrower.borrowed_books],
     }
 
 
 def _deserialize_borrower(data):
     """Convert a dict from JSON back to a Borrower object."""
-    return Borrower(
+    borrower = Borrower(
         member_id=data["member_id"],
         name=data["name"],
         email=data["email"],
         phone=data.get("phone"),
     )
-
-
-def _serialize_borrow(borrow):
-    """Convert a Borrow object to a JSON-serializable dict."""
-    return {
-        "member_id": borrow.member_id,
-        "book_title": borrow.book_title,
-        "borrow_date": str(borrow.borrow_date),
-        "return_date": str(borrow.return_date) if borrow.return_date else None,
-        "due_date": str(borrow.due_date),
-    }
-
-
-def _deserialize_borrow(data):
-    """Convert a dict from JSON back to a Borrow object."""
-    borrow_date = _parse_date(data.get("borrow_date")) or date.today()
-    due_date = _parse_date(data.get("due_date")) or borrow_date + timedelta(days=14)
-    # Support old format with borrower_name
-    member_id = data.get("member_id") or data.get("borrower_name")
-    return Borrow(
-        member_id=member_id,
-        book_title=data["book_title"],
-        borrow_date=borrow_date,
-        due_date=due_date,
-        return_date=_parse_date(data.get("return_date")),
-    )
+    # Load borrow history
+    for record_data in data.get("borrowed_books", []):
+        borrower.borrowed_books.append(BorrowRecord.from_dict(record_data))
+    return borrower
 
 
 # ── public I/O ────────────────────────────────────────────────────────────────
 
 
 def load_data():
-    """Load books, authors, borrowers, and borrows from library.json."""
+    """Load books, authors, and borrowers from library.json."""
     if not DATA_FILE.exists() or DATA_FILE.stat().st_size == 0:
-        return [], [], [], []
+        return [], [], []
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
     books = [_deserialize_book(b) for b in data.get("books", [])]
     authors = [_deserialize_author(a) for a in data.get("authors", [])]
     borrowers = [_deserialize_borrower(b) for b in data.get("borrowers", [])]
-    borrows = [_deserialize_borrow(b) for b in data.get("borrows", [])]
-    return books, authors, borrowers, borrows
+    return books, authors, borrowers
 
 
-def save_data(books, authors, borrowers, borrows):
-    """Save books, authors, borrowers, and borrows to library.json."""
+def save_data(books, authors, borrowers):
+    """Save books, authors, and borrowers to library.json."""
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(
             {
                 "books": [_serialize_book(b) for b in books],
                 "authors": [_serialize_author(a) for a in authors],
                 "borrowers": [_serialize_borrower(b) for b in borrowers],
-                "borrows": [_serialize_borrow(b) for b in borrows],
             },
             f,
             indent=4,
