@@ -1,6 +1,6 @@
 from datetime import date
 
-from book import LibraryResource
+from library_resource import LibraryResource
 
 
 class Author(LibraryResource):

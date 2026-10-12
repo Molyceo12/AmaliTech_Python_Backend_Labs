@@ -1,6 +1,7 @@
-from abc import ABC, abstractmethod
 from datetime import date
 from enum import Enum
+
+from library_resource import LibraryResource
 
 
 class Categories(Enum):
@@ -20,42 +21,6 @@ class Categories(Enum):
     TECHNOLOGY = "Technology"
     SCIENCE = "Science"
     GENERAL = "General"
-
-
-class LibraryResource(ABC):
-    """Abstract base class for all library resources."""
-
-    def __init__(self, title):
-        self.title = title
-
-    @abstractmethod
-    def to_dict(self) -> dict:
-        """Serialize resource to a dictionary for persistence."""
-        pass
-
-    @abstractmethod
-    def display_info(self) -> str:
-        """Return a human-readable summary of the resource."""
-        pass
-
-    @abstractmethod
-    def get_id(self) -> str:
-        """Return a unique identifier for the resource."""
-        pass
-
-    @classmethod
-    @abstractmethod
-    def from_dict(cls, data: dict):
-        """Deserialize resource from a dictionary."""
-        pass
-
-    @abstractmethod
-    def __repr__(self):
-        pass
-
-    @abstractmethod
-    def __eq__(self, other):
-        pass
 
 
 class Book(LibraryResource):
