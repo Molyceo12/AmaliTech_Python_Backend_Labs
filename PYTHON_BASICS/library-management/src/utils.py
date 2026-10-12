@@ -341,7 +341,7 @@ def borrow_book(books, borrowers, authors):
 
     record = borrower.borrow_book(book_to_borrow.isbn)
     save_data(books, authors, borrowers)
-    print(f"Book borrowed successfully! Due date: {record.due_date}")
+    print(f"Book borrowed successfully! Due date: {record['due_date']}")
 
 
 def return_book(books, borrowers, authors):
