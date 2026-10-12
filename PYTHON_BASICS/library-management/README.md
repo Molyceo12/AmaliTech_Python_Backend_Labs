@@ -127,13 +127,15 @@ Book returned successfully.
 
 ```
 src/
-  author.py      — Author data model
-  book.py        — Book data model with categories and types
-  borrower.py    — Borrow records and data persistence
-  utils.py       — CLI menu, search, filter, and CRUD actions
-  main.py        — Entry point
+  author.py          — Author data model
+  book.py            — Book data model with categories and types
+  borrower.py        — Borrower domain model with history
+  library_resource.py — Abstract base class (LibraryResource)
+  storage.py         — Data persistence (load/save)
+  utils.py           — Search, filter, display helpers
+  main.py            — CLI entry point
 data/
-  library.json   — Persisted library data
+  library.json       — Persisted library data
 ```
 
 ## Data Persistence

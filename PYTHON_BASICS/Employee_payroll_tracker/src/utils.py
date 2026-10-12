@@ -3,8 +3,8 @@
 SCREEN_WIDTH = 68
 
 
-def format_currency(val: float, prefix: str = "$") -> str:
-    """Format a number into money format, for example $1,000.00."""
+def format_currency(val: float, prefix: str = "RWF ") -> str:
+    """Format a number into money format, for example RWF 1,000.00."""
     return f"{prefix}{val:,.2f}"
 
 

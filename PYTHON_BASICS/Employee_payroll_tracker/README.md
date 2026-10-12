@@ -22,7 +22,7 @@ Or directly:
 python src/main.py
 ```
 
-## Run Tests
+## Test
 
 ```bash
 python -m poetry run pytest
@@ -106,9 +106,9 @@ The app validates all input and re-prompts on errors:
 :: Name   : Nziza Paul                                             ::
 :: Role   : Full-Time Employee                                     ::
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-:: Gross  : $400,000.00                                            ::
-:: Tax    : $90,000.00                                             ::
-:: Net    : $310,000.00                                            ::
+:: Gross  : RWF 400,000.00                                         ::
+:: Tax    : RWF 104,000.00                                         ::
+:: Net    : RWF 296,000.00                                         ::
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ```
 
@@ -118,12 +118,12 @@ The app validates all input and re-prompts on errors:
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 :: ID       Name               Role                    Net Pay     ::
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-:: FT001    Nziza Paul         Full-Time Employee      $310,000.00 ::
+:: FT001    Nziza Paul         Full-Time Employee      RWF 296,000.00 ::
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-:: TOTALS                                                        $310,000.00 ::
-:: Total Gross : $400,000.00                                      ::
-:: Total Tax   : $90,000.00                                       ::
-:: Total Net   : $310,000.00                                      ::
+:: TOTALS                                                        RWF 296,000.00 ::
+:: Total Gross : RWF 400,000.00                                      ::
+:: Total Tax   : RWF 104,000.00                                       ::
+:: Total Net   : RWF 296,000.00                                       ::
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ```
 
