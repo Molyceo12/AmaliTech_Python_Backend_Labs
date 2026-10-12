@@ -43,3 +43,25 @@ class Author(LibraryResource):
             and self.nationality == other.nationality
             and self.birth_year == other.birth_year
         )
+
+    def get_id(self) -> str:
+        return self.name
+
+    def display_info(self) -> str:
+        return f"Author: {self.name} | Nationality: {self.nationality or 'N/A'} | Born: {self.birth_year or 'N/A'}"
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "nationality": self.nationality,
+            "birth_year": self.birth_year,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        from borrower import _safe_int
+        return cls(
+            name=data["name"],
+            nationality=data.get("nationality"),
+            birth_year=_safe_int(data.get("birth_year")),
+        )

@@ -29,6 +29,27 @@ class LibraryResource(ABC):
         self.title = title
 
     @abstractmethod
+    def to_dict(self) -> dict:
+        """Serialize resource to a dictionary for persistence."""
+        pass
+
+    @abstractmethod
+    def display_info(self) -> str:
+        """Return a human-readable summary of the resource."""
+        pass
+
+    @abstractmethod
+    def get_id(self) -> str:
+        """Return a unique identifier for the resource."""
+        pass
+
+    @classmethod
+    @abstractmethod
+    def from_dict(cls, data: dict):
+        """Deserialize resource from a dictionary."""
+        pass
+
+    @abstractmethod
     def __repr__(self):
         pass
 
@@ -173,6 +194,51 @@ class Book(LibraryResource):
             return False
         return self.isbn == other.isbn
 
+    def get_id(self) -> str:
+        return self.isbn
+
+    def display_info(self) -> str:
+        return (
+            f"[Book] ISBN: {self.isbn} | Title: {self.title} | Author: {self.author.name} "
+            f"| Year: {self._year or 'N/A'} | Category: {self.category.value} "
+            f"| Copies: {self.copies}"
+        )
+
+    def to_dict(self) -> dict:
+        base = {
+            "title": self.title,
+            "isbn": self.isbn,
+            "category": self.category.value,
+            "year": self.year,
+            "copies": self.copies,
+            "author": {
+                "name": self.author.name,
+                "nationality": self.author.nationality,
+                "birth_year": self.author.birth_year,
+            },
+        }
+        return base
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        from author import Author
+        from borrower import _safe_int
+        book_class = data.get("book_class", "Book")
+        if book_class == "EBook":
+            return EBook.from_dict(data)
+        elif book_class == "AudioBook":
+            return AudioBook.from_dict(data)
+        a = data["author"]
+        author = Author(a["name"], a.get("nationality"), _safe_int(a.get("birth_year")))
+        return cls(
+            title=data["title"],
+            author=author,
+            isbn=data["isbn"],
+            category=Categories(data.get("category", "General")),
+            year=_safe_int(data.get("year")),
+            copies=data.get("copies", 1),
+        )
+
 
 class EBook(Book):
     """Represents an electronic book."""
@@ -218,6 +284,38 @@ class EBook(Book):
             f"year={self._year}, category={self.category.value}, file_size_mb={self.file_size_mb})"
         )
 
+    def get_id(self) -> str:
+        return self.isbn
+
+    def display_info(self) -> str:
+        return (
+            f"[EBook] ISBN: {self.isbn} | Title: {self.title} | Author: {self.author.name} "
+            f"| Year: {self._year or 'N/A'} | Category: {self.category.value} "
+            f"| File Size: {self.file_size_mb} MB | Copies: {self.copies}"
+        )
+
+    def to_dict(self) -> dict:
+        base = super().to_dict()
+        base["book_class"] = "EBook"
+        base["file_size_mb"] = self.file_size_mb
+        return base
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        from author import Author
+        from borrower import _safe_int
+        a = data["author"]
+        author = Author(a["name"], a.get("nationality"), _safe_int(a.get("birth_year")))
+        return cls(
+            title=data["title"],
+            author=author,
+            isbn=data["isbn"],
+            year=_safe_int(data.get("year")),
+            file_size_mb=data.get("file_size_mb", 0),
+            category=Categories(data.get("category", "General")),
+            copies=data.get("copies", 1),
+        )
+
 
 class AudioBook(Book):
     """Represents an audio book."""
@@ -261,4 +359,36 @@ class AudioBook(Book):
         return (
             f"AudioBook(title={self.title}, author={self.author}, isbn={self.isbn}, "
             f"year={self._year}, category={self.category.value}, duration_minutes={self.duration_minutes})"
+        )
+
+    def get_id(self) -> str:
+        return self.isbn
+
+    def display_info(self) -> str:
+        return (
+            f"[AudioBook] ISBN: {self.isbn} | Title: {self.title} | Author: {self.author.name} "
+            f"| Year: {self._year or 'N/A'} | Category: {self.category.value} "
+            f"| Duration: {self.duration_minutes} min | Copies: {self.copies}"
+        )
+
+    def to_dict(self) -> dict:
+        base = super().to_dict()
+        base["book_class"] = "AudioBook"
+        base["duration_minutes"] = self.duration_minutes
+        return base
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        from author import Author
+        from borrower import _safe_int
+        a = data["author"]
+        author = Author(a["name"], a.get("nationality"), _safe_int(a.get("birth_year")))
+        return cls(
+            title=data["title"],
+            author=author,
+            isbn=data["isbn"],
+            year=_safe_int(data.get("year")),
+            duration_minutes=data.get("duration_minutes", 0),
+            category=Categories(data.get("category", "General")),
+            copies=data.get("copies", 1),
         )

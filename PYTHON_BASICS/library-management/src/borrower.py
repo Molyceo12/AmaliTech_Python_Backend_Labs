@@ -81,6 +81,49 @@ class Borrower(LibraryResource):
             return False
         return self.member_id == other.member_id
 
+    def get_id(self) -> str:
+        return self.member_id
+
+    def display_info(self) -> str:
+        phone_str = f" | Phone: {self.phone}" if self.phone else ""
+        active = len(self.get_active_borrows())
+        return f"Borrower: {self.name} | ID: {self.member_id} | Email: {self.email}{phone_str} | Active borrows: {active}"
+
+    def to_dict(self) -> dict:
+        return {
+            "member_id": self.member_id,
+            "name": self.name,
+            "email": self.email,
+            "phone": self.phone,
+            "borrowed": [
+                {
+                    "book_title": r["book_title"],
+                    "borrow_date": str(r["borrow_date"]),
+                    "due_date": str(r["due_date"]),
+                    "return_date": str(r["return_date"]) if r["return_date"] else None,
+                }
+                for r in self._borrowed
+            ],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        borrower = cls(
+            member_id=data["member_id"],
+            name=data["name"],
+            email=data["email"],
+            phone=data.get("phone"),
+        )
+        for record_data in data.get("borrowed", []):
+            record = {
+                "book_title": record_data["book_title"],
+                "borrow_date": date.fromisoformat(record_data["borrow_date"]) if record_data.get("borrow_date") else date.today(),
+                "due_date": date.fromisoformat(record_data["due_date"]) if record_data.get("due_date") else date.today() + timedelta(days=14),
+                "return_date": date.fromisoformat(record_data["return_date"]) if record_data.get("return_date") else None,
+            }
+            borrower._borrowed.append(record)
+        return borrower
+
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -93,112 +136,6 @@ def _safe_int(value):
         return None
 
 
-# ── serialization ─────────────────────────────────────────────────────────────
-
-
-def _serialize_book(book):
-    """Convert a Book object to a JSON-serializable dict."""
-    base = {
-        "title": book.title,
-        "isbn": book.isbn,
-        "category": book.category.value,
-        "year": book.year,
-        "copies": book.copies,
-        "author": {
-            "name": book.author.name,
-            "nationality": book.author.nationality,
-            "birth_year": book.author.birth_year,
-        },
-    }
-    if isinstance(book, EBook):
-        base["book_class"] = "EBook"
-        base["file_size_mb"] = book.file_size_mb
-    elif isinstance(book, AudioBook):
-        base["book_class"] = "AudioBook"
-        base["duration_minutes"] = book.duration_minutes
-    else:
-        base["book_class"] = "Book"
-    return base
-
-
-def _deserialize_book(data):
-    """Convert a dict from JSON back to a Book object."""
-    a = data["author"]
-    author = Author(a["name"], a.get("nationality"), _safe_int(a.get("birth_year")))
-    book_class = data.get("book_class") or ("Book" if data.get("book_type") else "Book")
-    base_args = {
-        "title": data["title"],
-        "author": author,
-        "isbn": data["isbn"],
-        "category": Categories(data.get("category", "General")),
-        "year": _safe_int(data.get("year")),
-        "copies": data.get("copies", 1),
-    }
-    if book_class == "EBook":
-        return EBook(**base_args, file_size_mb=data.get("file_size_mb", 0))
-    elif book_class == "AudioBook":
-        return AudioBook(**base_args, duration_minutes=data.get("duration_minutes", 0))
-    else:
-        return Book(**base_args)
-
-
-def _serialize_author(author):
-    """Convert an Author object to a JSON-serializable dict."""
-    return {
-        "name": author.name,
-        "nationality": author.nationality,
-        "birth_year": author.birth_year,
-    }
-
-
-def _deserialize_author(data):
-    """Convert a dict from JSON back to an Author object."""
-    return Author(
-        name=data["name"],
-        nationality=data.get("nationality"),
-        birth_year=_safe_int(data.get("birth_year")),
-    )
-
-
-def _serialize_borrower(borrower):
-    """Convert a Borrower object to a JSON-serializable dict."""
-    return {
-        "member_id": borrower.member_id,
-        "name": borrower.name,
-        "email": borrower.email,
-        "phone": borrower.phone,
-        "borrowed": [
-            {
-                "book_title": r["book_title"],
-                "borrow_date": str(r["borrow_date"]),
-                "due_date": str(r["due_date"]),
-                "return_date": str(r["return_date"]) if r["return_date"] else None,
-            }
-            for r in borrower._borrowed
-        ],
-    }
-
-
-def _deserialize_borrower(data):
-    """Convert a dict from JSON back to a Borrower object."""
-    borrower = Borrower(
-        member_id=data["member_id"],
-        name=data["name"],
-        email=data["email"],
-        phone=data.get("phone"),
-    )
-    # Load borrow history
-    for record_data in data.get("borrowed", []):
-        record = {
-            "book_title": record_data["book_title"],
-            "borrow_date": date.fromisoformat(record_data["borrow_date"]) if record_data.get("borrow_date") else date.today(),
-            "due_date": date.fromisoformat(record_data["due_date"]) if record_data.get("due_date") else date.today() + timedelta(days=14),
-            "return_date": date.fromisoformat(record_data["return_date"]) if record_data.get("return_date") else None,
-        }
-        borrower._borrowed.append(record)
-    return borrower
-
-
 # ── public I/O ────────────────────────────────────────────────────────────────
 
 
@@ -208,9 +145,9 @@ def load_data():
         return [], [], []
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
-    books = [_deserialize_book(b) for b in data.get("books", [])]
-    authors = [_deserialize_author(a) for a in data.get("authors", [])]
-    borrowers = [_deserialize_borrower(b) for b in data.get("borrowers", [])]
+    books = [Book.from_dict(b) for b in data.get("books", [])]
+    authors = [Author.from_dict(a) for a in data.get("authors", [])]
+    borrowers = [Borrower.from_dict(b) for b in data.get("borrowers", [])]
     return books, authors, borrowers
 
 
@@ -219,9 +156,9 @@ def save_data(books, authors, borrowers):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(
             {
-                "books": [_serialize_book(b) for b in books],
-                "authors": [_serialize_author(a) for a in authors],
-                "borrowers": [_serialize_borrower(b) for b in borrowers],
+                "books": [b.to_dict() for b in books],
+                "authors": [a.to_dict() for a in authors],
+                "borrowers": [b.to_dict() for b in borrowers],
             },
             f,
             indent=4,
