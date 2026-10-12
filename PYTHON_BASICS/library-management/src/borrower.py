@@ -5,7 +5,7 @@ from pathlib import Path
 from author import Author
 from book import Book, Categories, EBook, AudioBook, LibraryResource
 
-DATA_FILE = Path("data/library.json")
+DATA_FILE = Path(__file__).parent / "data" / "library.json"
 DATA_FILE.parent.mkdir(exist_ok=True)
 
 
@@ -24,14 +24,14 @@ class Borrower(LibraryResource):
         self.name = name.strip()
         self.email = email.strip()
         self.phone = phone.strip() if phone else None
-        self._borrowed = []  # list of dicts: {book_title, borrow_date, due_date, return_date}
+        self._borrowed = []  # list of dicts: {isbn, borrow_date, due_date, return_date}
 
-    def borrow_book(self, book_title):
+    def borrow_book(self, isbn):
         """Borrow a book - creates a borrow record."""
-        if self._has_active_borrow(book_title):
-            raise ValueError(f"Already borrowed: {book_title}")
+        if self._has_active_borrow(isbn):
+            raise ValueError(f"Already borrowed: {isbn}")
         record = {
-            "book_title": book_title,
+            "isbn": isbn,
             "borrow_date": date.today(),
             "due_date": date.today() + timedelta(days=14),
             "return_date": None,
@@ -39,16 +39,16 @@ class Borrower(LibraryResource):
         self._borrowed.append(record)
         return record
 
-    def return_book(self, book_title):
+    def return_book(self, isbn):
         """Return a borrowed book."""
         for record in self._borrowed:
-            if record["book_title"] == book_title and record["return_date"] is None:
+            if record["isbn"] == isbn and record["return_date"] is None:
                 record["return_date"] = date.today()
                 return record
         return None
 
-    def _has_active_borrow(self, book_title):
-        return any(r["book_title"] == book_title and r["return_date"] is None for r in self._borrowed)
+    def _has_active_borrow(self, isbn):
+        return any(r["isbn"] == isbn and r["return_date"] is None for r in self._borrowed)
 
     def get_active_borrows(self):
         """Return list of unreturned borrows."""
@@ -97,7 +97,7 @@ class Borrower(LibraryResource):
             "phone": self.phone,
             "borrowed": [
                 {
-                    "book_title": r["book_title"],
+                    "isbn": r["isbn"],
                     "borrow_date": str(r["borrow_date"]),
                     "due_date": str(r["due_date"]),
                     "return_date": str(r["return_date"]) if r["return_date"] else None,
@@ -115,8 +115,10 @@ class Borrower(LibraryResource):
             phone=data.get("phone"),
         )
         for record_data in data.get("borrowed", []):
+            # Support both old format (book_title) and new format (isbn)
+            isbn = record_data.get("isbn") or record_data.get("book_title")
             record = {
-                "book_title": record_data["book_title"],
+                "isbn": isbn,
                 "borrow_date": date.fromisoformat(record_data["borrow_date"]) if record_data.get("borrow_date") else date.today(),
                 "due_date": date.fromisoformat(record_data["due_date"]) if record_data.get("due_date") else date.today() + timedelta(days=14),
                 "return_date": date.fromisoformat(record_data["return_date"]) if record_data.get("return_date") else None,
