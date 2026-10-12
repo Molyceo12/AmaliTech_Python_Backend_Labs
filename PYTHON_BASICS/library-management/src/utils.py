@@ -1,17 +1,18 @@
 from author import Author
 from book import Book, Categories, EBook, AudioBook
 from borrower import Borrower, load_data, save_data
+from datetime import date
 
 
 def get_available_copies(book: Book, borrowers: list[Borrower]) -> int:
     """Return total copies minus the number of active (unreturned) borrows."""
-    borrowed = sum(1 for b in borrowers for r in b.get_active_borrows() if r.book_title == book.title)
+    borrowed = sum(1 for b in borrowers for r in b.get_active_borrows() if r["book_title"] == book.title)
     return book.copies - borrowed
 
 
 def get_borrowed_count(book: Book, borrowers: list[Borrower]) -> int:
     """Return the number of copies currently borrowed."""
-    return sum(1 for b in borrowers for r in b.get_active_borrows() if r.book_title == book.title)
+    return sum(1 for b in borrowers for r in b.get_active_borrows() if r["book_title"] == book.title)
 
 
 def search_books(books: list[Book], query: str, field: str) -> list[Book]:
@@ -386,10 +387,10 @@ def list_borrows(borrowers):
         [
             i,
             member_id,
-            r.book_title,
-            r.borrow_date,
-            r.due_date,
-            "Overdue" if r.is_overdue() else "Borrowed",
+            r["book_title"],
+            r["borrow_date"],
+            r["due_date"],
+            "Overdue" if r["return_date"] is None and date.today() > r["due_date"] else "Borrowed",
         ]
         for i, (member_id, r) in enumerate(active, 1)
     ]
@@ -423,18 +424,18 @@ def list_borrower_history(borrowers):
     headers = ["#", "Book Title", "Borrowed On", "Due Date", "Returned On", "Status"]
     rows = []
     for i, r in enumerate(history, 1):
-        if r.return_date:
+        if r["return_date"]:
             status = "Returned"
-        elif r.is_overdue():
+        elif r["return_date"] is None and date.today() > r["due_date"]:
             status = "Overdue"
         else:
             status = "Borrowed"
         rows.append([
             i,
-            r.book_title,
-            r.borrow_date,
-            r.due_date,
-            r.return_date or "N/A",
+            r["book_title"],
+            r["borrow_date"],
+            r["due_date"],
+            r["return_date"] or "N/A",
             status,
         ])
     widths = [
@@ -532,7 +533,7 @@ def delete_book(books, borrowers, authors):
         print("Book not found.")
         return
 
-    if any(r.book_title == book.title for b in borrowers for r in b.get_active_borrows()):
+    if any(r["book_title"] == book.title for b in borrowers for r in b.get_active_borrows()):
         print("Cannot delete. Some copies are currently borrowed.")
         return
 

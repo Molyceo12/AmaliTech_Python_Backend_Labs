@@ -1,5 +1,4 @@
 import json
-from dataclasses import dataclass, asdict
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -8,41 +7,6 @@ from book import Book, Categories, EBook, AudioBook, LibraryResource
 
 DATA_FILE = Path("data/library.json")
 DATA_FILE.parent.mkdir(exist_ok=True)
-
-
-@dataclass
-class BorrowRecord:
-    """Represents a single book borrowing transaction."""
-    book_title: str
-    borrow_date: date
-    due_date: date
-    return_date: date = None
-
-    def is_overdue(self):
-        return self.return_date is None and date.today() > self.due_date
-
-    def mark_returned(self):
-        self.return_date = date.today()
-
-    def to_dict(self):
-        return {
-            "book_title": self.book_title,
-            "borrow_date": str(self.borrow_date),
-            "due_date": str(self.due_date),
-            "return_date": str(self.return_date) if self.return_date else None,
-        }
-
-    @classmethod
-    def from_dict(cls, data):
-        borrow_date = date.fromisoformat(data["borrow_date"]) if data.get("borrow_date") else date.today()
-        due_date = date.fromisoformat(data["due_date"]) if data.get("due_date") else borrow_date + timedelta(days=14)
-        return_date = date.fromisoformat(data["return_date"]) if data.get("return_date") else None
-        return cls(
-            book_title=data["book_title"],
-            borrow_date=borrow_date,
-            due_date=due_date,
-            return_date=return_date,
-        )
 
 
 class Borrower(LibraryResource):
@@ -60,37 +24,49 @@ class Borrower(LibraryResource):
         self.name = name.strip()
         self.email = email.strip()
         self.phone = phone.strip() if phone else None
-        self.borrowed_books = []  # list of BorrowRecord
+        self._borrowed = []  # list of dicts: {book_title, borrow_date, due_date, return_date}
 
     def borrow_book(self, book_title):
-        """Create a new borrow record for a book."""
-        record = BorrowRecord(
-            book_title=book_title,
-            borrow_date=date.today(),
-            due_date=date.today() + timedelta(days=14),
-        )
-        self.borrowed_books.append(record)
+        """Borrow a book - creates a borrow record."""
+        if self._has_active_borrow(book_title):
+            raise ValueError(f"Already borrowed: {book_title}")
+        record = {
+            "book_title": book_title,
+            "borrow_date": date.today(),
+            "due_date": date.today() + timedelta(days=14),
+            "return_date": None,
+        }
+        self._borrowed.append(record)
         return record
 
     def return_book(self, book_title):
-        """Mark a borrowed book as returned."""
-        for record in self.borrowed_books:
-            if record.book_title == book_title and record.return_date is None:
-                record.mark_returned()
+        """Return a borrowed book."""
+        for record in self._borrowed:
+            if record["book_title"] == book_title and record["return_date"] is None:
+                record["return_date"] = date.today()
                 return record
         return None
 
+    def _has_active_borrow(self, book_title):
+        return any(r["book_title"] == book_title and r["return_date"] is None for r in self._borrowed)
+
     def get_active_borrows(self):
-        """Return list of unreturned borrow records."""
-        return [r for r in self.borrowed_books if r.return_date is None]
+        """Return list of unreturned borrows."""
+        return [r for r in self._borrowed if r["return_date"] is None]
 
     def get_borrow_history(self):
         """Return all borrow records."""
-        return self.borrowed_books
+        return self._borrowed
 
     def has_overdue_books(self):
         """Check if borrower has any overdue books."""
-        return any(r.is_overdue() for r in self.borrowed_books)
+        today = date.today()
+        return any(r["return_date"] is None and today > r["due_date"] for r in self._borrowed)
+
+    def get_overdue_borrows(self):
+        """Return overdue borrows."""
+        today = date.today()
+        return [r for r in self._borrowed if r["return_date"] is None and today > r["due_date"]]
 
     def __str__(self):
         phone_str = f" | Phone: {self.phone}" if self.phone else ""
@@ -191,7 +167,15 @@ def _serialize_borrower(borrower):
         "name": borrower.name,
         "email": borrower.email,
         "phone": borrower.phone,
-        "borrowed_books": [r.to_dict() for r in borrower.borrowed_books],
+        "borrowed": [
+            {
+                "book_title": r["book_title"],
+                "borrow_date": str(r["borrow_date"]),
+                "due_date": str(r["due_date"]),
+                "return_date": str(r["return_date"]) if r["return_date"] else None,
+            }
+            for r in borrower._borrowed
+        ],
     }
 
 
@@ -204,8 +188,14 @@ def _deserialize_borrower(data):
         phone=data.get("phone"),
     )
     # Load borrow history
-    for record_data in data.get("borrowed_books", []):
-        borrower.borrowed_books.append(BorrowRecord.from_dict(record_data))
+    for record_data in data.get("borrowed", []):
+        record = {
+            "book_title": record_data["book_title"],
+            "borrow_date": date.fromisoformat(record_data["borrow_date"]) if record_data.get("borrow_date") else date.today(),
+            "due_date": date.fromisoformat(record_data["due_date"]) if record_data.get("due_date") else date.today() + timedelta(days=14),
+            "return_date": date.fromisoformat(record_data["return_date"]) if record_data.get("return_date") else None,
+        }
+        borrower._borrowed.append(record)
     return borrower
 
 
