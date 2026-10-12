@@ -1,6 +1,6 @@
 from author import Author
 from book import Book, Categories, EBook, AudioBook
-from borrower import Borrow, load_data, save_data
+from borrower import Borrow, Borrower, load_data, save_data
 
 
 # ── copy helpers ──────────────────────────────────────────────────────────────
@@ -194,7 +194,7 @@ def add_book(books, authors, borrows):
             return
 
     books.append(book)
-    save_data(books, authors, borrows)
+    save_data(books, authors, borrowers, borrows)
     print("Book added successfully.")
 
 
@@ -267,7 +267,59 @@ def list_authors(authors):
         print(_fmt_row(widths, row))
 
 
-def borrow_book(books, borrows, authors):
+def add_borrower(borrowers):
+    """Prompt user for borrower details and add the borrower."""
+    member_id = input("Member ID: ").strip()
+    if not member_id:
+        print("Member ID cannot be empty.")
+        return
+    if any(b.member_id == member_id for b in borrowers):
+        print("Member ID already exists!")
+        return
+
+    name = input("Name: ").strip()
+    if not name:
+        print("Name cannot be empty.")
+        return
+
+    email = input("Email: ").strip()
+    if not email:
+        print("Email cannot be empty.")
+        return
+
+    phone = input("Phone (optional): ").strip() or None
+
+    try:
+        borrower = Borrower(member_id, name, email, phone)
+    except ValueError as e:
+        print(f"Invalid borrower data: {e}")
+        return
+
+    borrowers.append(borrower)
+    print("Borrower added successfully.")
+
+
+def list_borrowers(borrowers):
+    """Display all borrowers in a column-aligned table."""
+    if not borrowers:
+        print("No borrowers registered.")
+        return
+    headers = ["#", "Member ID", "Name", "Email", "Phone"]
+    rows = [
+        [i, b.member_id, b.name, b.email, b.phone or ""]
+        for i, b in enumerate(borrowers, 1)
+    ]
+    widths = [
+        max(len(str(r[i])) for r in [headers] + rows) for i in range(len(headers))
+    ]
+    print(f"\nBorrowers ({len(borrowers)} total):")
+    print(_fmt_row(widths, headers))
+    print("  ".join("-" * w for w in widths))
+    for row in rows:
+        print(_fmt_row(widths, row))
+
+
+def borrow_book(books, borrowers, borrows, authors):
     """Borrow a book by ISBN if copies are available."""
     isbn = input("ISBN of book to borrow: ").strip()
     if not isbn:
@@ -283,22 +335,27 @@ def borrow_book(books, borrows, authors):
         print("No available copies to borrow.")
         return
 
-    borrower = input("Your name: ").strip()
+    member_id = input("Member ID: ").strip()
+    if not member_id:
+        print("Member ID cannot be empty.")
+        return
+    
+    borrower = next((b for b in borrowers if b.member_id == member_id), None)
     if not borrower:
-        print("Borrower name cannot be empty.")
+        print("Borrower not found. Please register first.")
         return
 
-    borrow_record = Borrow(borrower, book_to_borrow.title)
+    borrow_record = Borrow(member_id, book_to_borrow.title)
     borrows.append(borrow_record)
-    save_data(books, authors, borrows)
+    save_data(books, authors, borrowers, borrows)
     print(f"Book borrowed successfully! Due date: {borrow_record.due_date}")
 
 
-def return_book(books, borrows, authors):
+def return_book(books, borrowers, borrows, authors):
     """Mark a borrowed book as returned."""
-    borrower = input("Your name: ").strip()
-    if not borrower:
-        print("Borrower name cannot be empty.")
+    member_id = input("Member ID: ").strip()
+    if not member_id:
+        print("Member ID cannot be empty.")
         return
     isbn = input("ISBN of book to return: ").strip()
     if not isbn:
@@ -314,7 +371,7 @@ def return_book(books, borrows, authors):
         (
             b
             for b in borrows
-            if b.borrower_name == borrower
+            if b.member_id == member_id
             and b.book_title == book_to_return.title
             and b.return_date is None
         ),
@@ -323,7 +380,7 @@ def return_book(books, borrows, authors):
 
     if borrow_record:
         borrow_record.mark_returned()
-        save_data(books, authors, borrows)
+        save_data(books, authors, borrowers, borrows)
         print("Book returned successfully.")
     else:
         print("No active borrow record found for this book and borrower.")
@@ -335,11 +392,11 @@ def list_borrows(borrows):
     if not active:
         print("No active borrow records found.")
         return
-    headers = ["#", "Borrower", "Book Title", "Borrowed On", "Due Date", "Status"]
+    headers = ["#", "Member ID", "Book Title", "Borrowed On", "Due Date", "Status"]
     rows = [
         [
             i,
-            b.borrower_name,
+            b.member_id,
             b.book_title,
             b.borrow_date,
             b.due_date,
@@ -447,7 +504,7 @@ def delete_book(books, borrows, authors):
         return
 
     books.remove(book)
-    save_data(books, authors, borrows)
+    save_data(books, authors, borrowers, borrows)
     print(f"Book '{book.title}' deleted successfully.")
 
 
@@ -456,19 +513,21 @@ def delete_book(books, borrows, authors):
 
 def cli():
     """Main CLI loop: load data, display menu, and dispatch user actions."""
-    books, authors, borrows = load_data()
+    books, authors, borrowers, borrows = load_data()
 
     actions = {
-        "1": lambda: add_book(books, authors, borrows),
+        "1": lambda: add_book(books, authors, borrowers, borrows),
         "2": lambda: list_books(books, borrows),
         "3": lambda: list_authors(authors),
-        "4": lambda: borrow_book(books, borrows, authors),
-        "5": lambda: return_book(books, borrows, authors),
-        "6": lambda: list_borrows(borrows),
-        "7": lambda: search_book_cli(books),
-        "8": lambda: filter_books_cli(books, borrows),
-        "9": lambda: delete_book(books, borrows, authors),
-        "0": lambda: (save_data(books, authors, borrows), print("Exiting...")),
+        "4": lambda: list_borrowers(borrowers),
+        "5": lambda: add_borrower(borrowers),
+        "6": lambda: borrow_book(books, borrowers, borrows, authors),
+        "7": lambda: return_book(books, borrowers, borrows, authors),
+        "8": lambda: list_borrows(borrows),
+        "9": lambda: search_book_cli(books),
+        "10": lambda: filter_books_cli(books, borrows),
+        "11": lambda: delete_book(books, borrows, authors),
+        "0": lambda: (save_data(books, authors, borrowers, borrows), print("Exiting...")),
     }
 
     while True:
@@ -476,12 +535,14 @@ def cli():
         print("1. Add a book")
         print("2. List all books")
         print("3. List authors")
-        print("4. Borrow a book")
-        print("5. Return a book")
-        print("6. List borrow records")
-        print("7. Search a book")
-        print("8. Filter records")
-        print("9. Delete a book")
+        print("4. List borrowers")
+        print("5. Add a borrower")
+        print("6. Borrow a book")
+        print("7. Return a book")
+        print("8. List borrow records")
+        print("9. Search a book")
+        print("10. Filter records")
+        print("11. Delete a book")
         print("0. Exit")
 
         choice = input("Enter your choice: ")

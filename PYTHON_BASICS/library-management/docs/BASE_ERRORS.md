@@ -25,7 +25,14 @@
 - Updated `_deserialize_book()` to instantiate correct subclass based on `book_class` field
 - Updated imports to include `EBook` and `AudioBook`
 
-## Error 4: Borrower vs Borrow Confusion
+## Error 4: Borrower vs Borrow Confusion — **FIXED**
 **Location:** `src/borrower.py` line 12 (`class Borrow`)
 
-The file contains a `Borrow` class (representing a borrowing record), not a `Borrower` class (representing a library member/entity). The lab mentions "a Borrower class" — likely meaning a member class separate from borrow records, with attributes like member_id, contact_info, borrowed_books list, etc.
+**Fix Applied:**
+- Added `Borrower` class extending `LibraryResource` with `member_id`, `name`, `email`, `phone` attributes
+- Modified `Borrow` class to use `member_id` instead of `borrower_name`
+- Added `_serialize_borrower`/`_deserialize_borrower` functions
+- Updated `_serialize_borrow`/`_deserialize_borrow` to use `member_id` (backward compatible with old `borrower_name`)
+- Updated `load_data`/`save_data` to handle borrowers list
+- Updated CLI with "Add borrower" and "List borrowers" menu options
+- Updated borrow/return functions to use member_id lookup
