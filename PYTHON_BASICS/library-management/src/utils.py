@@ -1,5 +1,5 @@
 from author import Author
-from book import Book, Categories, TypeOfBook
+from book import Book, Categories, EBook, AudioBook
 from borrower import Borrow, load_data, save_data
 
 
@@ -49,7 +49,7 @@ def filter_books(
     - available: books with copies available
     - borrowed: books currently borrowed
     - category: books matching a Categories enum value
-    - type: books matching a TypeOfBook enum value
+    - type: books matching a book class (Book, EBook, AudioBook)
     """
     filtered = []
     for book in books:
@@ -68,8 +68,9 @@ def filter_books(
             filtered.append(book)
         elif (
             criteria == "type"
-            and isinstance(value, TypeOfBook)
-            and book.book_type == value
+            and isinstance(value, type)
+            and issubclass(value, Book)
+            and isinstance(book, value)
         ):
             filtered.append(book)
     return filtered
@@ -149,22 +150,48 @@ def add_book(books, authors, borrows):
         category = Categories.GENERAL
 
     print("\nAvailable book types:")
-    for t in TypeOfBook:
-        print(t.value)
-    book_type_input = input("Book type: ").strip().title()
-    try:
-        book_type = (
-            TypeOfBook(book_type_input) if book_type_input else TypeOfBook.HARDCOVER
-        )
-    except ValueError:
-        print(f"Invalid book type '{book_type_input}'. Using Hardcover.")
-        book_type = TypeOfBook.HARDCOVER
-
-    try:
-        book = Book(title, author, isbn, year, category, book_type, copies)
-    except ValueError as e:
-        print(f"Invalid book data: {e}")
-        return
+    print("1. Book (Physical)")
+    print("2. EBook")
+    print("3. AudioBook")
+    book_class_input = input("Enter book type (1/2/3): ").strip()
+    
+    if book_class_input == "2":
+        # EBook
+        file_size_input = input("File size (MB): ").strip()
+        try:
+            file_size_mb = float(file_size_input)
+            if file_size_mb <= 0:
+                raise ValueError
+        except ValueError:
+            print("File size must be a positive number.")
+            return
+        try:
+            book = EBook(title, author, isbn, year, file_size_mb, category, copies)
+        except ValueError as e:
+            print(f"Invalid book data: {e}")
+            return
+    elif book_class_input == "3":
+        # AudioBook
+        duration_input = input("Duration (minutes): ").strip()
+        try:
+            duration_minutes = int(duration_input)
+            if duration_minutes <= 0:
+                raise ValueError
+        except ValueError:
+            print("Duration must be a positive integer.")
+            return
+        try:
+            book = AudioBook(title, author, isbn, year, duration_minutes, category, copies)
+        except ValueError as e:
+            print(f"Invalid book data: {e}")
+            return
+    else:
+        # Physical Book
+        try:
+            book = Book(title, author, isbn, year, category, copies)
+        except ValueError as e:
+            print(f"Invalid book data: {e}")
+            return
 
     books.append(book)
     save_data(books, authors, borrows)
@@ -195,6 +222,7 @@ def list_books(books, borrows):
     rows = []
     for i, b in enumerate(books, 1):
         available = get_available_copies(b, borrows)
+        book_type = type(b).__name__
         rows.append(
             [
                 i,
@@ -202,7 +230,7 @@ def list_books(books, borrows):
                 b.author.name,
                 b.isbn,
                 b.category.value if b.category else "",
-                b.book_type.value if b.book_type else "",
+                book_type,
                 b.year or "",
                 b.copies,
                 available,
@@ -369,15 +397,20 @@ def filter_books_cli(books, borrows):
 
     elif criteria == "type":
         print("\nAvailable Book Types:")
-        for t in TypeOfBook:
-            print(t.value)
-        value_input = input("Enter type: ").strip().title()
+        print("1. Book (Physical)")
+        print("2. EBook")
+        print("3. AudioBook")
+        value_input = input("Enter type (1/2/3): ").strip()
         if not value_input:
             print("Book type cannot be empty.")
             return
-        try:
-            value = TypeOfBook(value_input)
-        except ValueError:
+        if value_input == "1":
+            value = Book
+        elif value_input == "2":
+            value = EBook
+        elif value_input == "3":
+            value = AudioBook
+        else:
             print(f"Invalid book type '{value_input}'.")
             return
 

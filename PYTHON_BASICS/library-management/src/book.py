@@ -22,13 +22,6 @@ class Categories(Enum):
     GENERAL = "General"
 
 
-class TypeOfBook(Enum):
-    HARDCOVER = "Hardcover"
-    PAPERBACK = "Paperback"
-    EBOOK = "Ebook"
-    AUDIOBOOK = "Audiobook"
-
-
 class LibraryResource(ABC):
     """Abstract base class for all library resources."""
 
@@ -54,13 +47,11 @@ class Book(LibraryResource):
         isbn,
         year,
         category: Categories = Categories.GENERAL,
-        book_type: TypeOfBook = TypeOfBook.HARDCOVER,
         copies=1,
     ):
         self._title = None
         self._isbn = None
         self._category = None
-        self._book_type = None
         self._author = None
         self._year = None
         self._copies = None
@@ -70,7 +61,6 @@ class Book(LibraryResource):
         self.isbn = isbn
         self.year = year
         self.category = category
-        self.book_type = book_type
         self.copies = copies
 
     @property
@@ -117,19 +107,6 @@ class Book(LibraryResource):
             self._category = Categories(value)
         else:
             raise ValueError("Invalid category")
-
-    @property
-    def book_type(self):
-        return self._book_type
-
-    @book_type.setter
-    def book_type(self, value):
-        if isinstance(value, TypeOfBook):
-            self._book_type = value
-        elif isinstance(value, str):
-            self._book_type = TypeOfBook(value)
-        else:
-            raise ValueError("Invalid book type")
 
     @property
     def author(self):
@@ -182,16 +159,106 @@ class Book(LibraryResource):
         return (
             f"  [Book] ISBN: {self.isbn} | Title: {self.title} | Author: {self.author.name} "
             f"| Year: {self._year or 'N/A'} | Category: {self.category.value} "
-            f"| Type: {self.book_type.value} | Copies: {self.copies}"
+            f"| Copies: {self.copies}"
         )
 
     def __repr__(self):
         return (
             f"Book(title={self.title}, author={self.author}, isbn={self.isbn}, "
-            f"year={self._year}, category={self.category.value}, book_type={self.book_type.value})"
+            f"year={self._year}, category={self.category.value})"
         )
 
     def __eq__(self, other):
         if not isinstance(other, Book):
             return False
         return self.isbn == other.isbn
+
+
+class EBook(Book):
+    """Represents an electronic book."""
+
+    def __init__(
+        self,
+        title,
+        author,
+        isbn,
+        year,
+        file_size_mb,
+        category: Categories = Categories.GENERAL,
+        copies=1,
+    ):
+        super().__init__(title, author, isbn, year, category, copies)
+        self._file_size_mb = None
+        self.file_size_mb = file_size_mb
+
+    @property
+    def file_size_mb(self):
+        return self._file_size_mb
+
+    @file_size_mb.setter
+    def file_size_mb(self, value):
+        try:
+            value = float(value)
+        except (ValueError, TypeError):
+            raise ValueError("File size must be a number")
+        if value <= 0:
+            raise ValueError("File size must be positive")
+        self._file_size_mb = value
+
+    def __str__(self):
+        return (
+            f"  [EBook] ISBN: {self.isbn} | Title: {self.title} | Author: {self.author.name} "
+            f"| Year: {self._year or 'N/A'} | Category: {self.category.value} "
+            f"| File Size: {self.file_size_mb} MB | Copies: {self.copies}"
+        )
+
+    def __repr__(self):
+        return (
+            f"EBook(title={self.title}, author={self.author}, isbn={self.isbn}, "
+            f"year={self._year}, category={self.category.value}, file_size_mb={self.file_size_mb})"
+        )
+
+
+class AudioBook(Book):
+    """Represents an audio book."""
+
+    def __init__(
+        self,
+        title,
+        author,
+        isbn,
+        year,
+        duration_minutes,
+        category: Categories = Categories.GENERAL,
+        copies=1,
+    ):
+        super().__init__(title, author, isbn, year, category, copies)
+        self._duration_minutes = None
+        self.duration_minutes = duration_minutes
+
+    @property
+    def duration_minutes(self):
+        return self._duration_minutes
+
+    @duration_minutes.setter
+    def duration_minutes(self, value):
+        try:
+            value = int(value)
+        except (ValueError, TypeError):
+            raise ValueError("Duration must be a number")
+        if value <= 0:
+            raise ValueError("Duration must be positive")
+        self._duration_minutes = value
+
+    def __str__(self):
+        return (
+            f"  [AudioBook] ISBN: {self.isbn} | Title: {self.title} | Author: {self.author.name} "
+            f"| Year: {self._year or 'N/A'} | Category: {self.category.value} "
+            f"| Duration: {self.duration_minutes} min | Copies: {self.copies}"
+        )
+
+    def __repr__(self):
+        return (
+            f"AudioBook(title={self.title}, author={self.author}, isbn={self.isbn}, "
+            f"year={self._year}, category={self.category.value}, duration_minutes={self.duration_minutes})"
+        )

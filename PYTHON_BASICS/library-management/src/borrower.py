@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from author import Author
-from book import Book, Categories, LibraryResource, TypeOfBook
+from book import Book, Categories, EBook, AudioBook, LibraryResource
 
 DATA_FILE = Path("data/library.json")
 DATA_FILE.parent.mkdir(exist_ok=True)
@@ -91,11 +91,10 @@ def _parse_date(value):
 
 def _serialize_book(book):
     """Convert a Book object to a JSON-serializable dict."""
-    return {
+    base = {
         "title": book.title,
         "isbn": book.isbn,
         "category": book.category.value,
-        "book_type": book.book_type.value,
         "year": book.year,
         "copies": book.copies,
         "author": {
@@ -104,21 +103,37 @@ def _serialize_book(book):
             "birth_year": book.author.birth_year,
         },
     }
+    if isinstance(book, EBook):
+        base["book_class"] = "EBook"
+        base["file_size_mb"] = book.file_size_mb
+    elif isinstance(book, AudioBook):
+        base["book_class"] = "AudioBook"
+        base["duration_minutes"] = book.duration_minutes
+    else:
+        base["book_class"] = "Book"
+    return base
 
 
 def _deserialize_book(data):
     """Convert a dict from JSON back to a Book object."""
     a = data["author"]
     author = Author(a["name"], a.get("nationality"), _safe_int(a.get("birth_year")))
-    return Book(
-        title=data["title"],
-        author=author,
-        isbn=data["isbn"],
-        category=Categories(data.get("category", "General")),
-        book_type=TypeOfBook(data.get("book_type", "Hardcover")),
-        year=_safe_int(data.get("year")),
-        copies=data.get("copies", 1),
-    )
+    # Support both old format (book_type) and new format (book_class)
+    book_class = data.get("book_class") or ("Book" if data.get("book_type") else "Book")
+    base_args = {
+        "title": data["title"],
+        "author": author,
+        "isbn": data["isbn"],
+        "category": Categories(data.get("category", "General")),
+        "year": _safe_int(data.get("year")),
+        "copies": data.get("copies", 1),
+    }
+    if book_class == "EBook":
+        return EBook(**base_args, file_size_mb=data.get("file_size_mb", 0))
+    elif book_class == "AudioBook":
+        return AudioBook(**base_args, duration_minutes=data.get("duration_minutes", 0))
+    else:
+        return Book(**base_args)
 
 
 def _serialize_author(author):
