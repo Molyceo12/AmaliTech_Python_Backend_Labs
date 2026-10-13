@@ -14,10 +14,10 @@ from borrower import Borrower
 from datetime import date
 
 
-def __save_data(books, authors, borrowers):
+def _save_data(books, authors, borrowers):
     """Lazy import to avoid circular dependency with storage module."""
     from storage import save_data
-    _save_data(books, authors, borrowers)
+    save_data(books, authors, borrowers)
 
 
 def get_available_copies(book: Book, borrowers: list[Borrower]) -> int:
