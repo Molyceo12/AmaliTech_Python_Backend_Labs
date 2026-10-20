@@ -13,11 +13,30 @@ from grade_analytics.writers import JsonReportWriter, ReportWriter
 
 REPORT: GradeReport = {
     "total_students": 2,
-    "statistics": {"mean": 81.0, "median": 81.0, "mode": None},
+    "total_grades": 2,
+    "statistics": {
+        "count": 2,
+        "mean": 81.0,
+        "median": 81.0,
+        "mode": None,
+        "lowest": 70.0,
+        "highest": 92.0,
+    },
     "grade_distribution": {"A": 1, "B": 0, "C": 1, "D": 0, "F": 0},
     "averages_by_major": {"Computer Science": 81.0},
+    "students_per_year": {"1": 2},
+    "averages_by_course": [
+        {
+            "code": "CS101",
+            "title": "Introduction to Programming",
+            "credits": 4,
+            "grades": 2,
+            "average": 81.0,
+        }
+    ],
     "top_performers": [
         {
+            "rank": 1,
             "student_id": "S001",
             "name": "Zoë",
             "major": "Computer Science",
@@ -25,7 +44,15 @@ REPORT: GradeReport = {
             "percentile": 100.0,
         }
     ],
-    "semester_trends": {"2026-S1": [92.0, 70.0]},
+    "semester_trends": [
+        {
+            "semester": "2026-S1",
+            "grades": 2,
+            "average": 81.0,
+            "rolling_average": 81.0,
+            "change": None,
+        }
+    ],
 }
 
 

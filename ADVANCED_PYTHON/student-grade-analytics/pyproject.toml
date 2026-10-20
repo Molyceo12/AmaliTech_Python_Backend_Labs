@@ -10,6 +10,9 @@ requires-python = ">=3.11"
 dependencies = [
 ]
 
+[project.scripts]
+grade-analytics = "grade_analytics.cli:main"
+
 [tool.poetry]
 packages = [{include = "grade_analytics", from = "src"}]
 
@@ -70,4 +73,4 @@ branch = true
 [tool.coverage.report]
 show_missing = true
 fail_under = 90
-exclude_also = ['@(abc\.)?abstractmethod']
+exclude_also = ['@(abc\.)?abstractmethod', 'if __name__ == .__main__.:']
