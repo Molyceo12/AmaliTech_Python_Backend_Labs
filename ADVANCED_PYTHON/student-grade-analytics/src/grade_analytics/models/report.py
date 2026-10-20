@@ -4,13 +4,14 @@ from typing import Dict, List, Optional, TypedDict
 
 
 class StudentSummary(TypedDict):
-    """One student's line in the report."""
+    """One student's line in the top performers list."""
 
+    rank: int
     student_id: str
     name: str
     major: str
-    average: Optional[float]
-    percentile: Optional[float]
+    average: float
+    percentile: float
 
 
 class StatisticsSummary(TypedDict):
@@ -22,6 +23,16 @@ class StatisticsSummary(TypedDict):
     mode: Optional[float]
     lowest: Optional[float]
     highest: Optional[float]
+
+
+class CourseSummary(TypedDict):
+    """Average score of one course."""
+
+    code: str
+    title: str
+    credits: int
+    grades: int
+    average: float
 
 
 class SemesterTrend(TypedDict):
@@ -41,8 +52,11 @@ class GradeReport(TypedDict):
     """
 
     total_students: int
+    total_grades: int
     statistics: StatisticsSummary
     grade_distribution: Dict[str, int]
     averages_by_major: Dict[str, float]
+    students_per_year: Dict[str, int]
+    averages_by_course: List[CourseSummary]
     top_performers: List[StudentSummary]
     semester_trends: List[SemesterTrend]

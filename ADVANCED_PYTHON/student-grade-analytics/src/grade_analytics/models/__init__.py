@@ -5,6 +5,7 @@ from grade_analytics.models.grade import Grade, ScoreRecord, letter_for
 from grade_analytics.models.loaded_data import LoadedData
 from grade_analytics.models.problem import RowProblem
 from grade_analytics.models.report import (
+    CourseSummary,
     GradeReport,
     SemesterTrend,
     StatisticsSummary,
@@ -14,6 +15,7 @@ from grade_analytics.models.student import Student
 
 __all__ = [
     "Course",
+    "CourseSummary",
     "Grade",
     "GradeReport",
     "LoadedData",

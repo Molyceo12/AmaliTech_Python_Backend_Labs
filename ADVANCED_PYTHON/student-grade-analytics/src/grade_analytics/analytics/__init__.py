@@ -5,6 +5,11 @@ from grade_analytics.analytics.rankings import (
     rank_students,
     top_performers,
 )
+from grade_analytics.analytics.report_builder import (
+    averages_by_major,
+    build_report,
+    course_summaries,
+)
 from grade_analytics.analytics.statistics import (
     mean,
     median,
@@ -15,6 +20,9 @@ from grade_analytics.analytics.statistics import (
 from grade_analytics.analytics.trends import score_records, semester_trends
 
 __all__ = [
+    "averages_by_major",
+    "build_report",
+    "course_summaries",
     "RankedStudent",
     "mean",
     "median",
