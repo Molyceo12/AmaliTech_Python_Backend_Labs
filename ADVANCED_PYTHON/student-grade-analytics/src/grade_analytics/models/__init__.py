@@ -1,7 +1,17 @@
-"""Data models: grades, students and courses."""
+"""Data models: grades, students, courses and the report structure."""
 
 from grade_analytics.models.course import Course
 from grade_analytics.models.grade import Grade, ScoreRecord, letter_for
+from grade_analytics.models.report import GradeReport, StatisticsSummary, StudentSummary
 from grade_analytics.models.student import Student
 
-__all__ = ["Course", "Grade", "ScoreRecord", "Student", "letter_for"]
+__all__ = [
+    "Course",
+    "Grade",
+    "GradeReport",
+    "ScoreRecord",
+    "StatisticsSummary",
+    "Student",
+    "StudentSummary",
+    "letter_for",
+]
