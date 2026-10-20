@@ -1,0 +1,52 @@
+# Pre-commit hooks for the shared labs repo.
+# Python hooks only check the student grade analytics lab, so other labs are not affected.
+repos:
+  # Basic file checks: whitespace, final newline, valid YAML/TOML, no big files
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        files: ^ADVANCED_PYTHON/student-grade-analytics/
+      - id: end-of-file-fixer
+        files: ^ADVANCED_PYTHON/student-grade-analytics/
+      - id: check-yaml
+      - id: check-toml
+        files: ^ADVANCED_PYTHON/student-grade-analytics/
+      - id: check-added-large-files
+
+  # Black: formats the code (PEP 8 style)
+  - repo: https://github.com/psf/black
+    rev: 26.10.1
+    hooks:
+      - id: black
+        files: ^ADVANCED_PYTHON/student-grade-analytics/
+
+  # Ruff: lints and auto-fixes (imports, unused code, common bugs)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.1
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        files: ^ADVANCED_PYTHON/student-grade-analytics/
+
+  # Pylint: deeper code-quality checks
+  - repo: https://github.com/pylint-dev/pylint
+    rev: v4.1.3
+    hooks:
+      - id: pylint
+        args: [--rcfile=ADVANCED_PYTHON/student-grade-analytics/pyproject.toml]
+        files: ^ADVANCED_PYTHON/student-grade-analytics/(src|tests)/
+        additional_dependencies:
+          - pytest
+          - pytest-mock
+
+  # Mypy: checks the type hints (strict)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.4.0
+    hooks:
+      - id: mypy
+        args: [--config-file=ADVANCED_PYTHON/student-grade-analytics/pyproject.toml]
+        files: ^ADVANCED_PYTHON/student-grade-analytics/(src|tests)/
+        additional_dependencies:
+          - pytest
+          - pytest-mock
