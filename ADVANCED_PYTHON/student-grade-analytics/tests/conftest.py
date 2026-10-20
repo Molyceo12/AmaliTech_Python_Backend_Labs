@@ -1,9 +1,24 @@
-"""Shared pytest fixtures: sample students and grades."""
+"""Shared pytest fixtures: sample students, grades and temporary CSV files."""
+
+from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 
 from grade_analytics.models import Grade, Student
 from tests.helpers import make_grade, make_student
+
+
+@pytest.fixture(name="write_csv")
+def fixture_write_csv(tmp_path: Path) -> Callable[..., Path]:
+    """Return a function that writes CSV text to a temp file and gives its path."""
+
+    def write(content: str, name: str = "students.csv") -> Path:
+        path = tmp_path / name
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    return write
 
 
 @pytest.fixture(name="sample_grades")

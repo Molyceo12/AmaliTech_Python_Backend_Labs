@@ -1,0 +1,7 @@
+student_id,name,major,year,course_code,semester,score
+S001,Alice Mukamana,Computer Science,1,CS101,2026-S1,92
+S002,,Mathematics,2,MATH101,2026-S1,75
+S003,Chantal Uwase,Computer Science,two,CS101,2026-S1,70
+S004,David Mensah,Physics,3,PHY101,2026-S1,eighty
+S005,Esther Nyambura,Mathematics,1,MATH101,2026-S1,120
+S006,Felix Habimana,Physics,1,PHY101,2026-S1,85

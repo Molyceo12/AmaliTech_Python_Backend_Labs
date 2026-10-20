@@ -17,8 +17,27 @@ class DataFileNotFoundError(DataFileError):
     """The input data file does not exist."""
 
 
+class DataFilePermissionError(DataFileError):
+    """The input data file exists but cannot be opened (no permission)."""
+
+
 class DataFileFormatError(DataFileError):
     """The input data file is empty, unreadable or has wrong headers."""
+
+
+class InvalidRowError(DataFileError):
+    """One row of the data file has a missing or invalid value."""
+
+    def __init__(self, line_number: int, reason: str) -> None:
+        """Store where the row is and what is wrong with it.
+
+        Args:
+            line_number: Line of the row in the data file.
+            reason: Short description of the problem.
+        """
+        self.line_number = line_number
+        self.reason = reason
+        super().__init__(f"Line {line_number}: {reason}")
 
 
 class ReportWriteError(GradeAnalyticsError):
