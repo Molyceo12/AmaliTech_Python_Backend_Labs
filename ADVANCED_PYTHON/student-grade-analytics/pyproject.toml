@@ -1,0 +1,73 @@
+[project]
+name = "student-grade-analytics"
+version = "0.1.0"
+description = "Student grade analytics tool built with advanced Python collections."
+authors = [
+    {name = "Irimaso Maurice",email = "irimasomaurice@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+]
+
+[tool.poetry]
+packages = [{include = "grade_analytics", from = "src"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.1.1,<10.0.0)",
+    "mypy (>=2.4.0,<3.0.0)",
+    "pytest-mock (>=3.17.0,<4.0.0)",
+    "pytest-cov (>=7.1.0,<8.0.0)",
+    "black (>=26.10.1,<27.0.0)",
+    "ruff (>=0.17.1,<0.18.0)",
+    "pylint (>=4.1.3,<5.0.0)",
+    "pre-commit (>=4.7.0,<5.0.0)"
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+# Keep typing.Optional / Union / List / Dict: the lab asks for them explicitly.
+ignore = ["UP006", "UP007", "UP035", "UP045"]
+
+[tool.pylint.main]
+py-version = "3.11"
+# Works when run from the lab folder or from the repo root (pre-commit).
+init-hook = "import sys; sys.path[:0] = ['src', 'ADVANCED_PYTHON/student-grade-analytics/src', '.', 'ADVANCED_PYTHON/student-grade-analytics']"
+
+[tool.pylint.basic]
+no-docstring-rgx = "^(_|test_)"
+
+[tool.pylint.design]
+min-public-methods = 1
+
+[tool.mypy]
+strict = true
+mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+addopts = "-ra"
+
+[tool.coverage.run]
+source = ["grade_analytics"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 90
+exclude_also = ['@(abc\.)?abstractmethod']
