@@ -1,0 +1,46 @@
+student_id,name,major,year,course_code,semester,score
+S001,Alice Mukamana,Computer Science,1,CS101,2025-S2,94
+S001,Alice Mukamana,Computer Science,1,CS102,2026-S1,91
+S001,Alice Mukamana,Computer Science,1,CS201,2026-S2,96
+S002,Brian Okello,Mathematics,2,MATH101,2025-S2,72
+S002,Brian Okello,Mathematics,2,MATH102,2026-S1,78
+S002,Brian Okello,Mathematics,2,MATH201,2026-S2,81
+S003,Chantal Uwase,Computer Science,2,CS101,2025-S2,65
+S003,Chantal Uwase,Computer Science,2,CS102,2026-S1,70
+S003,Chantal Uwase,Computer Science,2,CS201,2026-S2,74
+S004,David Mensah,Physics,3,PHY101,2025-S2,88
+S004,David Mensah,Physics,3,PHY102,2026-S1,84
+S004,David Mensah,Physics,3,PHY201,2026-S2,90
+S005,Esther Nyambura,Mathematics,1,MATH101,2025-S2,55
+S005,Esther Nyambura,Mathematics,1,MATH102,2026-S1,61
+S005,Esther Nyambura,Mathematics,1,MATH201,2026-S2,58
+S006,Felix Habimana,Physics,1,PHY101,2025-S2,79
+S006,Felix Habimana,Physics,1,PHY102,2026-S1,82
+S006,Felix Habimana,Physics,1,PHY201,2026-S2,85
+S007,Grace Achieng,Computer Science,3,CS101,2025-S2,99
+S007,Grace Achieng,Computer Science,3,CS102,2026-S1,97
+S007,Grace Achieng,Computer Science,3,CS201,2026-S2,98
+S008,Hassan Diallo,Mathematics,3,MATH101,2025-S2,45
+S008,Hassan Diallo,Mathematics,3,MATH102,2026-S1,52
+S008,Hassan Diallo,Mathematics,3,MATH201,2026-S2,60
+S009,Irene Mutesi,Physics,2,PHY101,2025-S2,83
+S009,Irene Mutesi,Physics,2,PHY102,2026-S1,80
+S009,Irene Mutesi,Physics,2,PHY201,2026-S2,77
+S010,James Owusu,Computer Science,1,CS101,2025-S2,68
+S010,James Owusu,Computer Science,1,CS102,2026-S1,73
+S010,James Owusu,Computer Science,1,CS201,2026-S2,79
+S011,Kevin Ndayishimiye,Mathematics,2,MATH101,2025-S2,90
+S011,Kevin Ndayishimiye,Mathematics,2,MATH102,2026-S1,88
+S011,Kevin Ndayishimiye,Mathematics,2,MATH201,2026-S2,92
+S012,Linda Asante,Physics,3,PHY101,2025-S2,62
+S012,Linda Asante,Physics,3,PHY102,2026-S1,59
+S012,Linda Asante,Physics,3,PHY201,2026-S2,66
+S013,Moses Kiprono,Computer Science,2,CS101,2025-S2,81
+S013,Moses Kiprono,Computer Science,2,CS102,2026-S1,86
+S013,Moses Kiprono,Computer Science,2,CS201,2026-S2,84
+S014,Nadia Ingabire,Mathematics,1,MATH101,2025-S2,74
+S014,Nadia Ingabire,Mathematics,1,MATH102,2026-S1,69
+S014,Nadia Ingabire,Mathematics,1,MATH201,2026-S2,71
+S015,Oscar Boateng,Physics,2,PHY101,2025-S2,38
+S015,Oscar Boateng,Physics,2,PHY102,2026-S1,47
+S015,Oscar Boateng,Physics,2,PHY201,2026-S2,55
