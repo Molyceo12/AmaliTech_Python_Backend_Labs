@@ -22,14 +22,14 @@ def test_valid_file_writes_report(
     """The sample file gives exit code 0, a summary and a full JSON report."""
     assert run("students.csv", tmp_path, "--top", "3") == EXIT_OK
     report = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
-    assert report["total_students"] == 15
-    assert report["total_grades"] == 45
+    assert report["total_students"] == 16
+    assert report["total_grades"] == 48
     assert len(report["top_performers"]) == 3
     assert len(report["semester_trends"]) == 3
     printed = capsys.readouterr().out
-    assert "Students: 15   Grades: 45" in printed
+    assert "Students: 16   Grades: 48" in printed
     assert "Grade distribution:" in printed
-    assert "1. Grace Achieng (S007)" in printed
+    assert "1. Maurice Irimaso (S016)" in printed
 
 
 def test_invalid_rows_give_exit_code_2(
