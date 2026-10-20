@@ -63,7 +63,7 @@ def test_student_grades_are_not_shared() -> None:
     """default_factory gives every student their own grades list."""
     first, second = make_student("S1"), make_student("S2")
     first.grades.append(make_grade())
-    assert second.grades == []
+    assert not second.grades
 
 
 def test_grade_for_returns_latest_course_grade() -> None:
