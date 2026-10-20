@@ -9,6 +9,7 @@ from grade_analytics.exceptions import GradeAnalyticsError
 from grade_analytics.readers import CsvRecordReader
 from grade_analytics.services import AnalysisResult, AnalyticsService
 from grade_analytics.utils import bar_chart
+from grade_analytics.visualization import MatplotlibVisualizer
 from grade_analytics.writers import JsonReportWriter
 
 DEFAULT_OUTPUT = "output/report.json"
@@ -51,6 +52,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=3,
         help="semesters in the rolling average",
     )
+    parser.add_argument(
+        "--no-charts",
+        action="store_true",
+        help="only write the JSON report, no PNG charts",
+    )
     return parser
 
 
@@ -85,6 +91,9 @@ def format_summary(result: AnalysisResult) -> str:
             for problem in result.problems
         ]
     lines += ["", f"Report written to {result.output_path}"]
+    if result.chart_paths:
+        folder = result.chart_paths[0].parent
+        lines.append(f"Charts written to {folder} ({len(result.chart_paths)} files)")
     return "\n".join(lines)
 
 
@@ -92,11 +101,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     """Run the analysis and return the exit code.
 
     Exit codes: 0 = success, 1 = the analysis failed, 2 = some rows skipped.
-    Only this function picks the concrete reader and writer.
+    Only this function picks the concrete reader, writer and visualizer.
     """
     args = build_parser().parse_args(argv)
     service = AnalyticsService(
-        CsvRecordReader(), JsonReportWriter(), top_n=args.top, window=args.window
+        CsvRecordReader(),
+        JsonReportWriter(),
+        visualizer=None if args.no_charts else MatplotlibVisualizer(),
+        top_n=args.top,
+        window=args.window,
     )
     try:
         result = service.run(args.input_file, args.output)
