@@ -2,6 +2,19 @@
 
 from grade_analytics.models import Grade, Student
 
+HEADER = "student_id,name,major,year,course_code,semester,score\n"
+
+# One valid CSV row as the reader returns it (column -> value).
+ROW_DATA = {
+    "student_id": "S001",
+    "name": "Alice",
+    "major": "Computer Science",
+    "year": "1",
+    "course_code": "CS101",
+    "semester": "2026-S1",
+    "score": "92",
+}
+
 
 def make_grade(
     score: float = 85.0, course_code: str = "CS101", semester: str = "2026-S1"
