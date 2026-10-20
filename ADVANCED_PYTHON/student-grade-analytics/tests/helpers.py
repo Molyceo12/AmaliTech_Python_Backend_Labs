@@ -15,6 +15,15 @@ ROW_DATA = {
     "score": "92",
 }
 
+# Chart files the visualizer writes, in order.
+CHART_FILES = [
+    "grade_distribution.png",
+    "summary_statistics.png",
+    "top_performers.png",
+    "semester_trends.png",
+    "course_averages.png",
+]
+
 
 def make_grade(
     score: float = 85.0, course_code: str = "CS101", semester: str = "2026-S1"

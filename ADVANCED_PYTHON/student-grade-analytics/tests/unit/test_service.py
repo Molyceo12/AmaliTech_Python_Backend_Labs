@@ -10,6 +10,7 @@ from grade_analytics.exceptions import DataFileNotFoundError
 from grade_analytics.models import RowProblem
 from grade_analytics.readers import RawRecord, RecordReader
 from grade_analytics.services import AnalyticsService
+from grade_analytics.visualization import ReportVisualizer
 from grade_analytics.writers import ReportWriter
 from tests.helpers import ROW_DATA
 
@@ -37,6 +38,21 @@ def test_run_reads_analyses_and_writes(mocks: Mocks) -> None:
     writer.write.assert_called_once_with(result.report, "out/report.json")
     assert result.report["total_students"] == 1
     assert result.output_path == Path("out/report.json")
+    assert not result.chart_paths  # no visualizer given
+
+
+def test_run_draws_charts_next_to_the_report(
+    mocks: Mocks, mocker: MockerFixture
+) -> None:
+    """With a visualizer, charts are drawn once into the report's folder."""
+    reader, writer = mocks
+    visualizer: MagicMock = mocker.create_autospec(ReportVisualizer, instance=True)
+    visualizer.render.return_value = [Path("out/grade_distribution.png")]
+
+    result = AnalyticsService(reader, writer, visualizer).run("in.csv", "out.json")
+
+    visualizer.render.assert_called_once_with(result.report, Path("out"))
+    assert result.chart_paths == [Path("out/grade_distribution.png")]
 
 
 def test_run_returns_skipped_rows(mocks: Mocks) -> None:

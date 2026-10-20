@@ -6,14 +6,35 @@ from pathlib import Path
 import pytest
 
 from grade_analytics.cli import EXIT_ERROR, EXIT_OK, EXIT_ROWS_SKIPPED, main
+from tests.helpers import CHART_FILES
 
 DATA = Path(__file__).resolve().parents[2] / "data"
 
 
-def run(csv_name: str, tmp_path: Path, *extra: str) -> int:
-    """Run the CLI on a sample file, writing the report into ``tmp_path``."""
+def run(csv_name: str, tmp_path: Path, *extra: str, charts: bool = False) -> int:
+    """Run the CLI on a sample file, writing the report into ``tmp_path``.
+
+    Charts are off by default to keep the tests fast.
+    """
     output = tmp_path / "report.json"
-    return main([str(DATA / csv_name), "--output", str(output), *extra])
+    args = [str(DATA / csv_name), "--output", str(output), *extra]
+    return main(args if charts else [*args, "--no-charts"])
+
+
+def test_charts_are_written_next_to_the_report(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """By default the CLI saves the JSON report and five PNG charts."""
+    assert run("students.csv", tmp_path, charts=True) == EXIT_OK
+    files = {path.name for path in tmp_path.iterdir()}
+    assert files == {*CHART_FILES, "report.json"}
+    assert "(5 files)" in capsys.readouterr().out
+
+
+def test_no_charts_writes_only_the_report(tmp_path: Path) -> None:
+    """--no-charts writes the JSON report only."""
+    assert run("students.csv", tmp_path) == EXIT_OK
+    assert [path.name for path in tmp_path.iterdir()] == ["report.json"]
 
 
 def test_valid_file_writes_report(
