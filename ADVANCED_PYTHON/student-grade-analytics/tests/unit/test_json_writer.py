@@ -13,7 +13,14 @@ from grade_analytics.writers import JsonReportWriter, ReportWriter
 
 REPORT: GradeReport = {
     "total_students": 2,
-    "statistics": {"mean": 81.0, "median": 81.0, "mode": None},
+    "statistics": {
+        "count": 2,
+        "mean": 81.0,
+        "median": 81.0,
+        "mode": None,
+        "lowest": 70.0,
+        "highest": 92.0,
+    },
     "grade_distribution": {"A": 1, "B": 0, "C": 1, "D": 0, "F": 0},
     "averages_by_major": {"Computer Science": 81.0},
     "top_performers": [

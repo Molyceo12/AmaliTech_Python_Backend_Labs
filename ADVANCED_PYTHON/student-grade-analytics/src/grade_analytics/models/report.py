@@ -14,11 +14,14 @@ class StudentSummary(TypedDict):
 
 
 class StatisticsSummary(TypedDict):
-    """Overall score statistics."""
+    """Overall score statistics (``None`` when there are no scores)."""
 
+    count: int
     mean: Optional[float]
     median: Optional[float]
     mode: Optional[float]
+    lowest: Optional[float]
+    highest: Optional[float]
 
 
 class GradeReport(TypedDict):
