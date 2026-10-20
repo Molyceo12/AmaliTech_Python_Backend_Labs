@@ -24,6 +24,16 @@ class StatisticsSummary(TypedDict):
     highest: Optional[float]
 
 
+class SemesterTrend(TypedDict):
+    """Average score of one semester and how it moves over time."""
+
+    semester: str
+    grades: int
+    average: float
+    rolling_average: float
+    change: Optional[float]
+
+
 class GradeReport(TypedDict):
     """The full report written to JSON.
 
@@ -35,4 +45,4 @@ class GradeReport(TypedDict):
     grade_distribution: Dict[str, int]
     averages_by_major: Dict[str, float]
     top_performers: List[StudentSummary]
-    semester_trends: Dict[str, List[float]]
+    semester_trends: List[SemesterTrend]

@@ -32,7 +32,15 @@ REPORT: GradeReport = {
             "percentile": 100.0,
         }
     ],
-    "semester_trends": {"2026-S1": [92.0, 70.0]},
+    "semester_trends": [
+        {
+            "semester": "2026-S1",
+            "grades": 2,
+            "average": 81.0,
+            "rolling_average": 81.0,
+            "change": None,
+        }
+    ],
 }
 
 

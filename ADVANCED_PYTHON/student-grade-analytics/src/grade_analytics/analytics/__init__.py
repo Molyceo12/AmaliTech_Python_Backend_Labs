@@ -12,6 +12,7 @@ from grade_analytics.analytics.statistics import (
     percentile_rank,
     summarize,
 )
+from grade_analytics.analytics.trends import score_records, semester_trends
 
 __all__ = [
     "RankedStudent",
@@ -20,6 +21,8 @@ __all__ = [
     "mode",
     "percentile_rank",
     "rank_students",
+    "score_records",
+    "semester_trends",
     "summarize",
     "top_performers",
 ]
