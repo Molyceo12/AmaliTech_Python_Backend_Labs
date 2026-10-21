@@ -1,5 +1,6 @@
 """Analytics service: read → analyse → write (→ charts), for one data file."""
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Union
@@ -9,6 +10,13 @@ from grade_analytics.models import GradeReport, RowProblem
 from grade_analytics.readers import RecordReader, build_students
 from grade_analytics.visualization import ReportVisualizer
 from grade_analytics.writers import ReportWriter
+
+# Called after each finished step with the step name and a short detail.
+StepCallback = Callable[[str, str], None]
+
+
+def _ignore_step(*_: str) -> None:
+    """Default step callback: report nothing."""
 
 
 @dataclass(frozen=True)
@@ -42,6 +50,7 @@ class AnalyticsService:
         visualizer: Chart generator; ``None`` to skip charts.
         top_n: How many top performers the report lists.
         window: How many semesters the rolling average covers.
+        on_step: Called after each finished step, e.g. to show progress.
     """
 
     reader: RecordReader
@@ -49,6 +58,7 @@ class AnalyticsService:
     visualizer: Optional[ReportVisualizer] = None
     top_n: int = 5
     window: int = 3
+    on_step: StepCallback = _ignore_step
 
     def run(
         self, input_path: Union[str, Path], output_path: Union[str, Path]
@@ -69,9 +79,20 @@ class AnalyticsService:
             ReportWriteError: If the report or a chart cannot be written.
         """
         data = build_students(self.reader.read(input_path))
+        grades = sum(len(student.grades) for student in data.students)
+        detail = f"{len(data.students)} students, {grades} grades"
+        if data.problems:
+            detail += f", {len(data.problems)} rows skipped"
+        self.on_step(f"Reading {input_path}", detail)
+
         report = build_report(data, top_n=self.top_n, window=self.window)
+        self.on_step("Calculating statistics", "report built")
+
         written = self.writer.write(report, output_path)
+        self.on_step("Writing the JSON report", "1 file")
+
         charts: List[Path] = []
         if self.visualizer is not None:
             charts = self.visualizer.render(report, written.parent)
+            self.on_step("Drawing the charts", f"{len(charts)} files")
         return AnalysisResult(report, data.problems, written, charts)

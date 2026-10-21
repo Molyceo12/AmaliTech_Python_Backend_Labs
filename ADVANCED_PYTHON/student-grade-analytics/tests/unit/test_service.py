@@ -49,10 +49,24 @@ def test_run_draws_charts_next_to_the_report(
     visualizer: MagicMock = mocker.create_autospec(ReportVisualizer, instance=True)
     visualizer.render.return_value = [Path("out/grade_distribution.png")]
 
-    result = AnalyticsService(reader, writer, visualizer).run("in.csv", "out.json")
+    on_step = mocker.Mock()
+    service = AnalyticsService(reader, writer, visualizer, on_step=on_step)
+    result = service.run("in.csv", "out.json")
 
     visualizer.render.assert_called_once_with(result.report, Path("out"))
     assert result.chart_paths == [Path("out/grade_distribution.png")]
+    on_step.assert_called_with("Drawing the charts", "1 files")
+
+
+def test_run_reports_each_step(mocks: Mocks, mocker: MockerFixture) -> None:
+    """``on_step`` is called once per finished step, in order."""
+    on_step = mocker.Mock()
+    AnalyticsService(*mocks, on_step=on_step).run("in.csv", "out.json")
+    assert on_step.call_args_list == [
+        mocker.call("Reading in.csv", "1 students, 1 grades, 1 rows skipped"),
+        mocker.call("Calculating statistics", "report built"),
+        mocker.call("Writing the JSON report", "1 file"),
+    ]
 
 
 def test_run_returns_skipped_rows(mocks: Mocks) -> None:
