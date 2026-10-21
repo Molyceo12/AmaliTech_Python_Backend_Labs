@@ -17,14 +17,32 @@ COMMON_LINE = (
 TIMESTAMP = datetime(2026, 10, 21, 13, 55, 36, tzinfo=UTC)
 
 
-def make_entry(status: int = 200, timestamp: datetime = TIMESTAMP) -> LogEntry:
-    """Return a simple GET entry with the given status and time."""
+def make_entry(  # pylint: disable=too-many-arguments
+    status: int = 200,
+    timestamp: datetime = TIMESTAMP,
+    *,
+    method: str = "GET",
+    ip: str = "192.168.1.10",
+    url: str = "/index.html",
+    size: int | None = 512,
+) -> LogEntry:
+    """Return an entry; by default a GET of ``/index.html`` with status 200."""
     return LogEntry(
-        ip="192.168.1.10",
+        ip=ip,
         timestamp=timestamp,
-        method="GET",
-        url="/index.html",
+        method=method,
+        url=url,
         protocol="HTTP/1.1",
         status=status,
-        size=512,
+        size=size,
     )
+
+
+# Five small entries with known totals, used by the pipeline tests.
+SAMPLE_ENTRIES = [
+    make_entry(200, ip="10.0.0.1", url="/", size=100),
+    make_entry(200, ip="10.0.0.1", url="/about", size=200),
+    make_entry(404, ip="10.0.0.2", url="/missing", size=None),
+    make_entry(500, method="POST", ip="10.0.0.3", url="/api", size=50),
+    make_entry(302, method="POST", ip="10.0.0.1", url="/login", size=0),
+]
