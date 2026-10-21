@@ -1,0 +1,12 @@
+# Local notes and plans
+docs/
+
+# Generated reports
+output/
+
+# Coverage HTML
+htmlcov/
+
+# Keep the lock file and the sample logs (both ignored at the repo root)
+!poetry.lock
+!data/*.log
