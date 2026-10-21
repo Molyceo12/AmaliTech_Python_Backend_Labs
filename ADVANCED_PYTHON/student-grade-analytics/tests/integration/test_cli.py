@@ -6,30 +6,70 @@ from pathlib import Path
 import pytest
 
 from grade_analytics.cli import EXIT_ERROR, EXIT_OK, EXIT_ROWS_SKIPPED, main
+from grade_analytics.console import border, boxed
+from tests.helpers import CHART_FILES
 
 DATA = Path(__file__).resolve().parents[2] / "data"
 
 
-def run(csv_name: str, tmp_path: Path, *extra: str) -> int:
-    """Run the CLI on a sample file, writing the report into ``tmp_path``."""
+def run(csv_name: str, tmp_path: Path, *extra: str, charts: bool = False) -> int:
+    """Run the CLI on a sample file, writing the report into ``tmp_path``.
+
+    Charts are off by default to keep the tests fast.
+    """
     output = tmp_path / "report.json"
-    return main([str(DATA / csv_name), "--output", str(output), *extra])
+    args = [str(DATA / csv_name), "--output", str(output), *extra]
+    return main(args if charts else [*args, "--no-charts"])
+
+
+def test_charts_are_written_next_to_the_report(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """By default the CLI saves the JSON report and five PNG charts."""
+    assert run("students.csv", tmp_path, charts=True) == EXIT_OK
+    files = {path.name for path in tmp_path.iterdir()}
+    assert files == {*CHART_FILES, "report.json"}
+    printed = capsys.readouterr().out
+    assert "4. Drawing the charts " in printed
+    assert "done (5 files)" in printed
+    assert "6. Course averages chart saved to " in printed
+
+
+def test_no_charts_writes_only_the_report(tmp_path: Path) -> None:
+    """--no-charts writes the JSON report only."""
+    assert run("students.csv", tmp_path) == EXIT_OK
+    assert [path.name for path in tmp_path.iterdir()] == ["report.json"]
 
 
 def test_valid_file_writes_report(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The sample file gives exit code 0, a summary and a full JSON report."""
+    """The sample file gives exit code 0, numbered steps and a full JSON report."""
     assert run("students.csv", tmp_path, "--top", "3") == EXIT_OK
     report = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
-    assert report["total_students"] == 15
-    assert report["total_grades"] == 45
+    assert report["total_students"] == 16
+    assert report["total_grades"] == 48
     assert len(report["top_performers"]) == 3
     assert len(report["semester_trends"]) == 3
     printed = capsys.readouterr().out
-    assert "Students: 15   Grades: 45" in printed
-    assert "Grade distribution:" in printed
-    assert "1. Grace Achieng (S007)" in printed
+    assert "done (16 students, 48 grades)" in printed
+    assert "2. Calculating statistics " in printed
+    assert "3. Writing the JSON report " in printed
+    assert "Drawing the charts" not in printed  # --no-charts
+    assert f"1. JSON report saved to {tmp_path / 'report.json'}" in printed
+
+
+def test_output_is_drawn_in_bordered_boxes(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Steps and summary sit in two boxes: border, title, border, lines, border."""
+    run("students.csv", tmp_path)
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[:3] == [border(), boxed("Student Grade Analytics"), border()]
+    assert boxed("Summary") in lines
+    assert lines[-1] == border()
+    assert lines.count(border()) == 6  # two boxes, three borders each
+    assert all(line.startswith("::") and line.endswith("::") for line in lines if line)
 
 
 def test_invalid_rows_give_exit_code_2(
@@ -38,6 +78,7 @@ def test_invalid_rows_give_exit_code_2(
     """Skipped rows are listed and the exit code is 2."""
     assert run("invalid_rows.csv", tmp_path) == EXIT_ROWS_SKIPPED
     printed = capsys.readouterr().out
+    assert "4 rows skipped)" in printed
     assert "Skipped rows (4):" in printed
     assert "Line 3: 'name' is empty" in printed
 
@@ -55,7 +96,9 @@ def test_file_errors_give_exit_code_1(
 ) -> None:
     """File problems print a clear error (no traceback) and exit with 1."""
     assert run(csv_name, tmp_path) == EXIT_ERROR
-    error = capsys.readouterr().err
+    captured = capsys.readouterr()
+    assert captured.out.splitlines()[-1] == border()  # the steps box is closed
+    error = captured.err
     assert error.startswith("Error:")
     assert message in error
     assert not (tmp_path / "report.json").exists()

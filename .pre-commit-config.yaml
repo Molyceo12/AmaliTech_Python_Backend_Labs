@@ -1,7 +1,7 @@
 # Pre-commit hooks for the shared labs repo.
 # Python hooks only check the student grade analytics lab, so other labs are not affected.
 repos:
-  # Basic file checks: whitespace, final newline, valid YAML/TOML, no big files
+  # Basic file checks: whitespace, final newline, valid YAML, no big files
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -10,16 +10,7 @@ repos:
       - id: end-of-file-fixer
         files: ^ADVANCED_PYTHON/student-grade-analytics/
       - id: check-yaml
-      - id: check-toml
-        files: ^ADVANCED_PYTHON/student-grade-analytics/
       - id: check-added-large-files
-
-  # Black: formats the code (PEP 8 style)
-  - repo: https://github.com/psf/black
-    rev: 26.10.1
-    hooks:
-      - id: black
-        files: ^ADVANCED_PYTHON/student-grade-analytics/
 
   # Ruff: lints and auto-fixes (imports, unused code, common bugs)
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -29,24 +20,29 @@ repos:
         args: [--fix]
         files: ^ADVANCED_PYTHON/student-grade-analytics/
 
-  # Pylint: deeper code-quality checks
-  - repo: https://github.com/pylint-dev/pylint
-    rev: v4.1.3
+  # Black, pylint and mypy run with the lab's .venv python (python -m poetry install):
+  # pre-commit's separate environments for them are blocked by Windows
+  # Application Control, and mypy/pylint also need the lab's packages (matplotlib).
+  - repo: local
     hooks:
+      # Black: formats the code (PEP 8 style)
+      - id: black
+        name: black
+        entry: ADVANCED_PYTHON\\student-grade-analytics\\.venv\\Scripts\\python.exe -m black
+        language: system
+        types: [python]
+        files: ^ADVANCED_PYTHON/student-grade-analytics/
+      # Pylint: deeper code-quality checks
       - id: pylint
-        args: [--rcfile=ADVANCED_PYTHON/student-grade-analytics/pyproject.toml]
+        name: pylint
+        entry: ADVANCED_PYTHON\\student-grade-analytics\\.venv\\Scripts\\python.exe -m pylint --rcfile=ADVANCED_PYTHON/student-grade-analytics/pyproject.toml
+        language: system
+        types: [python]
         files: ^ADVANCED_PYTHON/student-grade-analytics/(src|tests)/
-        additional_dependencies:
-          - pytest
-          - pytest-mock
-
-  # Mypy: checks the type hints (strict)
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.4.0
-    hooks:
+      # Mypy: checks the type hints (strict)
       - id: mypy
-        args: [--config-file=ADVANCED_PYTHON/student-grade-analytics/pyproject.toml]
+        name: mypy
+        entry: ADVANCED_PYTHON\\student-grade-analytics\\.venv\\Scripts\\python.exe -m mypy --config-file=ADVANCED_PYTHON/student-grade-analytics/pyproject.toml
+        language: system
+        types: [python]
         files: ^ADVANCED_PYTHON/student-grade-analytics/(src|tests)/
-        additional_dependencies:
-          - pytest
-          - pytest-mock
