@@ -1,14 +1,14 @@
 # Pre-commit hooks for the shared labs repo.
-# Python hooks only check the student grade analytics lab, so other labs are not affected.
+# Python hooks only check the advanced Python labs listed below, so other labs are not affected.
 repos:
   # Basic file checks: whitespace, final newline, valid YAML, no big files
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
-        files: ^ADVANCED_PYTHON/student-grade-analytics/
+        files: ^ADVANCED_PYTHON/(student-grade-analytics|log-file-analyzer)/
       - id: end-of-file-fixer
-        files: ^ADVANCED_PYTHON/student-grade-analytics/
+        files: ^ADVANCED_PYTHON/(student-grade-analytics|log-file-analyzer)/
       - id: check-yaml
       - id: check-added-large-files
 
@@ -18,7 +18,7 @@ repos:
     hooks:
       - id: ruff-check
         args: [--fix]
-        files: ^ADVANCED_PYTHON/student-grade-analytics/
+        files: ^ADVANCED_PYTHON/(student-grade-analytics|log-file-analyzer)/
 
   # Black, pylint and mypy run with the lab's .venv python (python -m poetry install):
   # pre-commit's separate environments for them are blocked by Windows
@@ -46,3 +46,25 @@ repos:
         language: system
         types: [python]
         files: ^ADVANCED_PYTHON/student-grade-analytics/(src|tests)/
+
+  # Log file analyzer: same three hooks, run with that lab's own .venv and config.
+  - repo: local
+    hooks:
+      - id: black-log-analyzer
+        name: black (log analyzer)
+        entry: ADVANCED_PYTHON\\log-file-analyzer\\.venv\\Scripts\\python.exe -m black
+        language: system
+        types: [python]
+        files: ^ADVANCED_PYTHON/log-file-analyzer/
+      - id: pylint-log-analyzer
+        name: pylint (log analyzer)
+        entry: ADVANCED_PYTHON\\log-file-analyzer\\.venv\\Scripts\\python.exe -m pylint --rcfile=ADVANCED_PYTHON/log-file-analyzer/pyproject.toml
+        language: system
+        types: [python]
+        files: ^ADVANCED_PYTHON/log-file-analyzer/(src|tests|scripts)/
+      - id: mypy-log-analyzer
+        name: mypy (log analyzer)
+        entry: ADVANCED_PYTHON\\log-file-analyzer\\.venv\\Scripts\\python.exe -m mypy --config-file=ADVANCED_PYTHON/log-file-analyzer/pyproject.toml
+        language: system
+        types: [python]
+        files: ^ADVANCED_PYTHON/log-file-analyzer/(src|tests|scripts)/
