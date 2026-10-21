@@ -22,6 +22,8 @@ All notable changes to the Student Grade Analytics Tool.
 - `AnalyticsService` with injected reader, writer and visualizer
 - Command line: `grade-analytics data/students.csv` with `--output`, `--top`,
   `--window` and `--no-charts`; exit codes 0 / 1 / 2
-- Five PNG charts with matplotlib and a text bar chart in the terminal
+- Five PNG charts with matplotlib
+- Terminal output in bordered boxes: numbered progress steps and a summary of
+  saved files
 - Memory comparison of collection approaches (`utils/memory.py`)
-- Sample CSV data, 127 tests with 100 % coverage, README, `requirements.txt`
+- Sample CSV data, 137 tests with 100 % coverage, README, `requirements.txt`

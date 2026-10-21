@@ -37,8 +37,9 @@ full type hints.
 - Averages per major, per course and per year
 - Semester trends with a `deque` rolling average
 - JSON report (shape described by a `TypedDict`) written atomically
-- Five PNG charts and a text bar chart in the terminal
-- 127 tests, 100 % line and branch coverage, mypy strict, pre-commit hooks
+- Five PNG charts; the terminal shows numbered progress steps and where each
+  file was saved
+- 137 tests, 100 % line and branch coverage, mypy strict, pre-commit hooks
 
 ## Setup
 
@@ -113,44 +114,64 @@ Sample files in `data/`: `students.csv` (16 students, 48 grades),
 
 ```
 $ python -m poetry run grade-analytics data/students.csv
-Student Grade Analytics
-Students: 16   Grades: 48
-Mean: 76.56   Median: 79.0   Mode: 100.0
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::  Student Grade Analytics                                                                     ::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::  1. Reading data/students.csv ................ done (16 students, 48 grades)                 ::
+::  2. Calculating statistics ................... done (report built)                           ::
+::  3. Writing the JSON report .................. done (1 file)                                 ::
+::  4. Drawing the charts ....................... done (5 files)                                ::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-Top performers:
-  1. Maurice Irimaso (S016) 99.67, percentile 100.0
-  2. Grace Achieng (S007) 98.00, percentile 93.8
-  3. Alice Mukamana (S001) 93.67, percentile 87.5
-  4. Kevin Ndayishimiye (S011) 90.00, percentile 81.2
-  5. David Mensah (S004) 87.33, percentile 75.0
-
-Grade distribution:
-A | ######################################## 12
-B | ##################################### 11
-C | ################################# 10
-D | ####################### 7
-F | ########################### 8
-
-Report written to output\report.json
-Charts written to output (5 files)
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::  Summary                                                                                     ::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::  1. JSON report saved to output\report.json                                                  ::
+::  2. Grade distribution chart saved to output\grade_distribution.png                          ::
+::  3. Summary statistics chart saved to output\summary_statistics.png                          ::
+::  4. Top performers chart saved to output\top_performers.png                                  ::
+::  5. Semester trends chart saved to output\semester_trends.png                                ::
+::  6. Course averages chart saved to output\course_averages.png                                ::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ```
+
+The steps and the summary are printed in bordered boxes; each step prints
+its line as soon as it finishes. The statistics, top performers and trends
+are in `output/report.json` and the charts.
 
 Rows with problems are skipped and listed (exit code 2):
 
 ```
 $ python -m poetry run grade-analytics data/invalid_rows.csv --no-charts
-...
-Skipped rows (4):
-  Line 3: 'name' is empty
-  Line 4: year 'two' is not a whole number
-  Line 5: score 'eighty' is not a number
-  Line 6: Score must be between 0 and 100, got 120
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::  Student Grade Analytics                                                                     ::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::  1. Reading data/invalid_rows.csv ............ done (2 students, 2 grades, 4 rows skipped)   ::
+::  2. Calculating statistics ................... done (report built)                           ::
+::  3. Writing the JSON report .................. done (1 file)                                 ::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::  Summary                                                                                     ::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::  1. JSON report saved to output\report.json                                                  ::
+::                                                                                              ::
+::  Skipped rows (4):                                                                           ::
+::    Line 3: 'name' is empty                                                                   ::
+::    Line 4: year 'two' is not a whole number                                                  ::
+::    Line 5: score 'eighty' is not a number                                                    ::
+::    Line 6: Score must be between 0 and 100, got 120                                          ::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ```
 
 File problems stop the run with a clear message (exit code 1):
 
 ```
 $ python -m poetry run grade-analytics data/missing.csv
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::  Student Grade Analytics                                                                     ::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 Error: Data file not found: data\missing.csv
 ```
 
@@ -215,6 +236,7 @@ Only `cli.py` chooses the concrete classes.
 
 ```
 cli.py  (picks CsvRecordReader, JsonReportWriter, MatplotlibVisualizer)
+  │     └─ console.py: draws the step and summary boxes
   │
   └─> AnalyticsService(reader, writer, visualizer)        services/
         ├─> RecordReader       (interface)                 readers/base.py
@@ -297,10 +319,10 @@ python -m poetry run python -m pre_commit run --all-files               # Black,
 
 | Folder | What is tested |
 |---|---|
-| `tests/unit/` | models, every collection aggregator, reader, row builder, writer, statistics, rankings, trends, report, service (mocked reader/writer/visualizer), charts, memory comparison |
+| `tests/unit/` | models, every collection aggregator, reader, row builder, writer, statistics, rankings, trends, report, service (mocked reader/writer/visualizer), charts, memory comparison, terminal boxes |
 | `tests/integration/` | the CLI on the real sample files: report, charts, exit codes 0 / 1 / 2 |
 
-127 tests, 100 % line and branch coverage (`reports/coverage.txt`). Tests use
+137 tests, 100 % line and branch coverage (`reports/coverage.txt`). Tests use
 fixtures (`conftest.py`), `parametrize`, `tmp_path` and `pytest-mock`.
 
 ## Project structure
@@ -309,6 +331,7 @@ fixtures (`conftest.py`), `parametrize`, `tmp_path` and `pytest-mock`.
 student-grade-analytics/
 ├── src/grade_analytics/
 │   ├── cli.py                  # command line (only place that picks concrete classes)
+│   ├── console.py              # terminal output: bordered boxes, steps, summary
 │   ├── exceptions.py           # GradeAnalyticsError and subclasses
 │   ├── models/                 # Grade, Student, Course, LoadedData, RowProblem, report TypedDicts
 │   ├── aggregators/            # Counter, defaultdict, OrderedDict, deque helpers
