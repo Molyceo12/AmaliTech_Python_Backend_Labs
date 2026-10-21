@@ -37,6 +37,14 @@ from log_analyzer.pipeline.transforms import (
     to_record,
     to_records,
 )
+from log_analyzer.pipeline.windowing import (
+    errors_by_status,
+    grouped,
+    paginate,
+    requests_per_hour,
+    time_window,
+    until,
+)
 
 __all__ = [
     "Predicate",
@@ -50,6 +58,8 @@ __all__ = [
     "count_by",
     "count_requests",
     "error_rate",
+    "errors_by_status",
+    "grouped",
     "in_time_range",
     "only_client_errors",
     "only_errors",
@@ -58,8 +68,10 @@ __all__ = [
     "only_redirects",
     "only_server_errors",
     "only_success",
+    "paginate",
     "parse_entries",
     "pipe",
+    "requests_per_hour",
     "requests_per_ip",
     "requests_per_method",
     "requests_per_status",
@@ -67,9 +79,11 @@ __all__ = [
     "select",
     "select_all",
     "summarize",
+    "time_window",
     "to_record",
     "to_records",
     "top_n",
     "total_bytes",
     "unique_urls",
+    "until",
 ]
