@@ -1,5 +1,35 @@
 """Functional pipeline: map transforms, filters, reduce aggregations."""
 
+from log_analyzer.pipeline.aggregations import (
+    count_by,
+    count_requests,
+    error_rate,
+    requests_per_ip,
+    requests_per_method,
+    requests_per_status,
+    requests_per_url,
+    top_n,
+    total_bytes,
+    unique_urls,
+)
+from log_analyzer.pipeline.filters import (
+    Predicate,
+    by_ip,
+    by_method,
+    by_status,
+    by_status_range,
+    in_time_range,
+    only_client_errors,
+    only_errors,
+    only_get,
+    only_post,
+    only_redirects,
+    only_server_errors,
+    only_success,
+    select,
+    select_all,
+)
+from log_analyzer.pipeline.pipeline import compose, pipe, summarize
 from log_analyzer.pipeline.transforms import (
     clean_url,
     clean_urls,
@@ -8,4 +38,38 @@ from log_analyzer.pipeline.transforms import (
     to_records,
 )
 
-__all__ = ["clean_url", "clean_urls", "parse_entries", "to_record", "to_records"]
+__all__ = [
+    "Predicate",
+    "by_ip",
+    "by_method",
+    "by_status",
+    "by_status_range",
+    "clean_url",
+    "clean_urls",
+    "compose",
+    "count_by",
+    "count_requests",
+    "error_rate",
+    "in_time_range",
+    "only_client_errors",
+    "only_errors",
+    "only_get",
+    "only_post",
+    "only_redirects",
+    "only_server_errors",
+    "only_success",
+    "parse_entries",
+    "pipe",
+    "requests_per_ip",
+    "requests_per_method",
+    "requests_per_status",
+    "requests_per_url",
+    "select",
+    "select_all",
+    "summarize",
+    "to_record",
+    "to_records",
+    "top_n",
+    "total_bytes",
+    "unique_urls",
+]
