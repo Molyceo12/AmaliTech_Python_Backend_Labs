@@ -1,0 +1,68 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.8, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\PC\Desktop\amalitech\labs\Maurice\Amalitech_Python_Backend_Labs\ADVANCED_PYTHON\student-grade-analytics
+configfile: pyproject.toml
+testpaths: tests
+plugins: platformdirs-4.13.5, cov-7.1.0, mock-3.17.0
+collected 127 items
+
+tests\integration\test_cli.py ..........                                 [  7%]
+tests\unit\test_aggregators.py ............                              [ 17%]
+tests\unit\test_chart_images.py ....                                     [ 20%]
+tests\unit\test_charts.py .....                                          [ 24%]
+tests\unit\test_csv_reader.py ..............                             [ 35%]
+tests\unit\test_json_writer.py .....                                     [ 39%]
+tests\unit\test_memory.py ....                                           [ 42%]
+tests\unit\test_models.py .......................                        [ 60%]
+tests\unit\test_rankings.py .......                                      [ 66%]
+tests\unit\test_report_builder.py ......                                 [ 70%]
+tests\unit\test_service.py ....                                          [ 74%]
+tests\unit\test_statistics.py ..................                         [ 88%]
+tests\unit\test_student_builder.py ..........                            [ 96%]
+tests\unit\test_trends.py .....                                          [100%]
+
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.14.8-final-0 _______________
+
+Name                                                     Stmts   Miss Branch BrPart  Cover   Missing
+----------------------------------------------------------------------------------------------------
+src\grade_analytics\__init__.py                              0      0      0      0   100%
+src\grade_analytics\aggregators\__init__.py                  5      0      0      0   100%
+src\grade_analytics\aggregators\distribution.py              8      0      0      0   100%
+src\grade_analytics\aggregators\grouping.py                 20      0      8      0   100%
+src\grade_analytics\aggregators\ordering.py                  9      0      4      0   100%
+src\grade_analytics\aggregators\rolling.py                  14      0      4      0   100%
+src\grade_analytics\analytics\__init__.py                    5      0      0      0   100%
+src\grade_analytics\analytics\rankings.py                   23      0      6      0   100%
+src\grade_analytics\analytics\report_builder.py             30      0      8      0   100%
+src\grade_analytics\analytics\statistics.py                 33      0     12      0   100%
+src\grade_analytics\analytics\trends.py                     22      0      8      0   100%
+src\grade_analytics\cli.py                                  54      0      6      0   100%
+src\grade_analytics\exceptions.py                           12      0      0      0   100%
+src\grade_analytics\models\__init__.py                       7      0      0      0   100%
+src\grade_analytics\models\course.py                         3      0      0      0   100%
+src\grade_analytics\models\grade.py                         20      0      6      0   100%
+src\grade_analytics\models\loaded_data.py                    7      0      0      0   100%
+src\grade_analytics\models\problem.py                        3      0      0      0   100%
+src\grade_analytics\models\report.py                         6      0      0      0   100%
+src\grade_analytics\models\student.py                       14      0      2      0   100%
+src\grade_analytics\readers\__init__.py                      4      0      0      0   100%
+src\grade_analytics\readers\base.py                          6      0      0      0   100%
+src\grade_analytics\readers\csv_reader.py                   38      0      8      0   100%
+src\grade_analytics\readers\student_builder.py              46      0      8      0   100%
+src\grade_analytics\services\__init__.py                     2      0      0      0   100%
+src\grade_analytics\services\analytics_service.py           24      0      2      0   100%
+src\grade_analytics\utils\__init__.py                        3      0      0      0   100%
+src\grade_analytics\utils\charts.py                         13      0      4      0   100%
+src\grade_analytics\utils\file_utils.py                     15      0      0      0   100%
+src\grade_analytics\utils\memory.py                         56      0     10      0   100%
+src\grade_analytics\visualization\__init__.py                3      0      0      0   100%
+src\grade_analytics\visualization\base.py                    5      0      0      0   100%
+src\grade_analytics\visualization\matplotlib_charts.py      85      0     14      0   100%
+src\grade_analytics\writers\__init__.py                      3      0      0      0   100%
+src\grade_analytics\writers\base.py                          5      0      0      0   100%
+src\grade_analytics\writers\json_writer.py                  19      0      0      0   100%
+----------------------------------------------------------------------------------------------------
+TOTAL                                                      622      0    110      0   100%
+Required test coverage of 90.0% reached. Total coverage: 100.00%
+============================= 127 passed in 3.53s =============================
