@@ -9,6 +9,9 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
+[project.scripts]
+log-analyzer = "log_analyzer.cli:main"
+
 [tool.poetry]
 packages = [{include = "log_analyzer", from = "src"}]
 
