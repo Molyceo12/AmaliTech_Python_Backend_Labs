@@ -2,6 +2,7 @@
 
 from datetime import datetime
 
+from log_analyzer.decorators import cache
 from log_analyzer.exceptions import LogParseError
 from log_analyzer.models import LogEntry
 from log_analyzer.patterns import LOG_FORMATS, TIMESTAMP_FORMAT
@@ -10,8 +11,12 @@ from log_analyzer.patterns.cleaning import normalize_whitespace
 NO_VALUE = "-"  # what logs write for a missing size or referrer
 
 
+@cache
 def parse_timestamp(text: str) -> datetime:
     """Turn ``"21/Oct/2026:13:55:36 +0000"`` into a timezone-aware datetime.
+
+    Cached: busy logs repeat the same second many times and ``strptime`` is
+    slow. Invalid dates are not cached (the error is raised every time).
 
     Raises:
         ValueError: If the text does not follow ``TIMESTAMP_FORMAT``.
