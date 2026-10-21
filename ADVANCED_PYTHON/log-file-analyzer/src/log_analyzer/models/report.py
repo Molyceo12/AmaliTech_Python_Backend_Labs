@@ -36,3 +36,25 @@ class LogSummary(TypedDict):
     top_ips: list[CountItem]
     top_urls: list[CountItem]
     unique_urls: int
+
+
+class PageSection(TypedDict):
+    """One page of the selected entries."""
+
+    number: int
+    per_page: int
+    entries: list[LogRecord]
+
+
+class LogReport(TypedDict):
+    """The full report written to JSON."""
+
+    files: list[str]
+    total_lines: int
+    parsed_lines: int
+    skipped_lines: int
+    filters: dict[str, str]
+    summary: LogSummary
+    requests_per_hour: dict[str, int]
+    errors_by_status: dict[str, int]
+    page: PageSection

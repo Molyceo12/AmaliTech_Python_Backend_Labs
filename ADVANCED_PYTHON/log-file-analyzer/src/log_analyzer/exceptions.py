@@ -30,3 +30,7 @@ class LogFileNotFoundError(LogFileError):
 
 class LogFilePermissionError(LogFileError):
     """The log file exists but cannot be opened (no permission)."""
+
+
+class ReportWriteError(LogAnalyzerError):
+    """The report file cannot be written."""
