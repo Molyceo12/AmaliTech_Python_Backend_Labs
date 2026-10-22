@@ -20,7 +20,12 @@ All notable changes to the Log File Analyzer.
   grouping, pagination and time windows
 - `@timer`, `@cache` (`functools.lru_cache`) and `@log_call` decorators,
   chained on the analyzer run
+- `LogReader`, `LogParser` and `ReportWriter` abstract classes with
+  `FileLogReader`, `ApacheLogParser` and `JsonReportWriter`, injected into
+  the analyzer service
 - Analyzer service, JSON report writer and the `log-analyzer` command with
   filters, paging and bordered terminal output
+- Application log file with levels (`output/log-analyzer.log`, `--log-file`);
+  warnings and errors also in the terminal, everything with `-v`
 - Generator vs. list memory comparison (`log_analyzer.utils.memory`)
-- 180 tests with 100 % coverage, README, `requirements.txt`
+- 203 tests with 100 % coverage, README, `requirements.txt`

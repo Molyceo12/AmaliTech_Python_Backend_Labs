@@ -17,14 +17,16 @@ entries, and decorators add timing, caching and call tracing.
 3. [Usage](#usage)
 4. [Sample output](#sample-output)
 5. [JSON report example](#json-report-example)
-6. [Regex patterns](#regex-patterns)
-7. [Functional pipeline](#functional-pipeline)
-8. [Generators and itertools](#generators-and-itertools)
-9. [Decorators](#decorators)
-10. [Generator vs. list performance](#generator-vs-list-performance)
-11. [Testing](#testing)
-12. [Project structure](#project-structure)
-13. [Git workflow](#git-workflow)
+6. [Architecture (SOLID)](#architecture-solid)
+7. [Regex patterns](#regex-patterns)
+8. [Functional pipeline](#functional-pipeline)
+9. [Generators and itertools](#generators-and-itertools)
+10. [Decorators](#decorators)
+11. [Application log](#application-log)
+12. [Generator vs. list performance](#generator-vs-list-performance)
+13. [Testing](#testing)
+14. [Project structure](#project-structure)
+15. [Git workflow](#git-workflow)
 
 ## Features
 
@@ -38,7 +40,8 @@ entries, and decorators add timing, caching and call tracing.
 - Reads one or many files lazily (`yield`, `itertools.chain`) in batches
 - `@timer`, `@cache` (`functools.lru_cache`) and `@log_call` decorators
 - JSON report and bordered terminal output
-- 180 tests, 100 % line and branch coverage, mypy strict, pre-commit hooks
+- Its own log file with levels (`output/log-analyzer.log`)
+- 203 tests, 100 % line and branch coverage, mypy strict, pre-commit hooks
 
 ## Setup
 
@@ -81,7 +84,8 @@ python -m poetry run log-analyzer data/access.log --from 2026-10-20T09:00 --to 2
 | `--from`, `--to` | none | time window, ISO 8601 (no timezone = UTC) |
 | `--top` | `5` | top IPs and URLs to list |
 | `--page`, `--per-page` | `1`, `20` | which entries the report lists |
-| `-v`, `--verbose` | off | show the `@timer` and `@log_call` messages |
+| `--log-file` | `output/log-analyzer.log` | where the tool writes its own log (every level) |
+| `-v`, `--verbose` | off | also show every log message in the terminal |
 
 Exit codes: `0` success, `1` the analysis failed (file missing, unreadable,
 report not writable), `2` bad command-line value (from `argparse`).
@@ -95,7 +99,7 @@ the next day) and `malformed.log` (10 lines, 4 valid). They are built by
 ```
 $ python -m poetry run log-analyzer data/access.log data/access_2.log --top 3
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-::  Log File Analyzer                                                                           ::
+::                                      Log File Analyzer                                       ::
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::  1. Reading 2 file(s) ........................ done (1,500 lines, 0 skipped)                 ::
 ::  2. Filtering the entries .................... done (1,500 entries match)                    ::
@@ -104,7 +108,7 @@ $ python -m poetry run log-analyzer data/access.log data/access_2.log --top 3
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-::  Summary                                                                                     ::
+::                                           Summary                                            ::
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::  1. Requests analyzed: 1,500 (0 lines skipped)                                               ::
 ::  2. Errors: 394 (26.3 %)                                                                     ::
@@ -115,6 +119,7 @@ $ python -m poetry run log-analyzer data/access.log data/access_2.log --top 3
 ::       192.168.1.17 (60 requests)                                                             ::
 ::       192.168.1.37 (58 requests)                                                             ::
 ::       198.51.100.23 (57 requests)                                                            ::
+::  7. Log saved to output\log-analyzer.log                                                     ::
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ```
 
@@ -170,6 +175,51 @@ Error: Log file not found: data\missing.log
 ```
 
 The shape of every section is a `TypedDict` in `models/report.py`.
+
+## Architecture (SOLID)
+
+The service does three jobs: **read → parse → write**. Each job has an
+abstract base class, and the service receives one concrete object for each.
+Only `cli.py` chooses which ones.
+
+| Abstract class | Abstract method | Concrete class used | Other options |
+|---|---|---|---|
+| `LogReader` (`readers/base.py`) | `read(paths) → Iterator[str]` | `FileLogReader` | gzip, folder or stdin reader |
+| `LogParser` (`parsing/base.py`) | `parse(line) → LogEntry \| None` | `ApacheLogParser` | custom Nginx format, JSON lines |
+| `ReportWriter` (`writers/base.py`) | `write(report, path) → Path` | `JsonReportWriter` | CSV, Markdown, HTML writer |
+
+```python
+# cli.py: the only place that picks the concrete classes
+service = AnalyzerService(
+    reader=FileLogReader(),
+    parser=ApacheLogParser(),
+    writer=JsonReportWriter(),
+    on_step=step_printer(),
+)
+```
+
+```mermaid
+flowchart LR
+    CLI[cli.py] --> S[AnalyzerService]
+    S --> R[LogReader]
+    S --> P[LogParser]
+    S --> W[ReportWriter]
+    FR[FileLogReader] -. inherits .-> R
+    AP[ApacheLogParser] -. inherits .-> P
+    JW[JsonReportWriter] -. inherits .-> W
+```
+
+| Principle | Where |
+|---|---|
+| Single responsibility | the reader reads, the parser parses, the writer saves, the service coordinates |
+| Open/closed | a new source, log layout or report format is a new subclass; the service does not change |
+| Liskov substitution | any subclass, or a test mock made from the ABC, can replace another |
+| Interface segregation | each abstract class has exactly one method |
+| Dependency inversion | `AnalyzerService` knows only the three abstract classes |
+
+Filters and aggregations stay functions on purpose: the lab asks for
+`filter`, `reduce` and `functools.partial`, and each filter or counter is a
+one-line `partial` rather than a class.
 
 ## Regex patterns
 
@@ -319,6 +369,42 @@ Decorators apply bottom-up: `run = timer(log_call(run))`. Calling `run`
 enters `timer` first, then `log_call`, then the method. Run with `-v` to see
 both messages.
 
+## Application log
+
+Besides the report, the tool writes **its own log** of what it did, in
+`output/log-analyzer.log` (change it with `--log-file`). The file gets every
+level and is appended to on each run; the terminal shows only warnings and
+errors, or everything with `-v`.
+
+| Level | Logged by | Example |
+|---|---|---|
+| `DEBUG` | `@log_call`, the reader | `Calling run(...)`, `Opened log file data\access.log` |
+| `INFO` | the service, `@timer` | each step, `Report written to ...`, `run took 0.062 s` |
+| `WARNING` | the service | lines that matched no format, no entries matching the filters |
+| `ERROR` | the CLI | `Analysis failed: Log file not found: ...` |
+
+```
+2026-10-22 10:24:08 INFO     log_analyzer.services.analyzer_service: Analyzing data/access.log, data/malformed.log with filters {}
+2026-10-22 10:24:08 DEBUG    log_analyzer.readers.log_reader: Opened log file data\access.log
+2026-10-22 10:24:08 INFO     log_analyzer.services.analyzer_service: Reading 2 file(s): 1,210 lines, 6 skipped
+2026-10-22 10:24:08 WARNING  log_analyzer.services.analyzer_service: 6 line(s) did not match any log format and were skipped
+2026-10-22 10:24:08 INFO     log_analyzer.services.analyzer_service: Filtering the entries: 1,204 entries match
+2026-10-22 10:24:08 INFO     log_analyzer.services.analyzer_service: Report written to output\report.json
+2026-10-22 10:24:08 INFO     log_analyzer.decorators.timing: run took 0.062 s
+2026-10-22 10:24:09 ERROR    log_analyzer.cli: Analysis failed: Log file not found: data\missing.log
+```
+
+How it is set up (`logging_config.py`):
+
+- Every module uses `logging.getLogger(__name__)`, so all loggers sit under
+  the `log_analyzer` package logger, which gets two handlers: a
+  `FileHandler` (DEBUG and up) and a `StreamHandler` on stderr (WARNING and
+  up, DEBUG with `-v`).
+- The CLI prints `Error: ...` itself, so its ERROR record is marked
+  `shown_to_user` and a filter keeps it out of the terminal; it still goes to
+  the file.
+- Calling the setup again replaces its own handlers, so nothing is logged twice.
+
 ## Generator vs. list performance
 
 Same job, two ways: count the error responses in a log built from 100
@@ -363,10 +449,10 @@ python -m poetry run python -m pre_commit run --all-files     # Black, ruff, pyl
 
 | Folder | What is tested |
 |---|---|
-| `tests/unit/` | log patterns and every named group, validators, cleaning, parser, model, sample data, transforms, filters and `partial`, aggregations, pipeline, reader (lazy, errors), batching iterator, itertools helpers, decorators (with `caplog`), options, service, JSON writer, terminal boxes, generator memory |
-| `tests/integration/` | the CLI on the real sample files: report, two chained files, filter options, exit codes 0 / 1 / 2 |
+| `tests/unit/` | log patterns and every named group, validators, cleaning, parser, model, sample data, transforms, filters and `partial`, aggregations, pipeline, reader (lazy, errors), batching iterator, itertools helpers, decorators (with `caplog`), options, service, JSON writer, terminal boxes, log file setup, abstract classes and custom subclasses, generator memory |
+| `tests/integration/` | the CLI on the real sample files: report, two chained files, filter options, log file contents, exit codes 0 / 1 / 2 |
 
-180 tests, 100 % line and branch coverage (`reports/coverage.txt`).
+203 tests, 100 % line and branch coverage (`reports/coverage.txt`).
 Regex tests use `pytest.mark.parametrize` with readable `ids` (e.g.
 `4-digit status`, `lowercase method`) for every bad line.
 
@@ -378,14 +464,15 @@ log-file-analyzer/
 │   ├── cli.py                  # command line (argparse, exit codes)
 │   ├── console.py              # bordered terminal output
 │   ├── exceptions.py           # LogAnalyzerError and subclasses
+│   ├── logging_config.py       # the tool's own log: file + terminal
 │   ├── models/                 # LogEntry dataclass, report TypedDicts
 │   ├── patterns/               # log formats, validators, re.sub cleaning
-│   ├── parsing/                # line → LogEntry (cached timestamps)
-│   ├── readers/                # generators, chain, Batches iterator
+│   ├── parsing/                # LogParser ABC, ApacheLogParser, line → LogEntry
+│   ├── readers/                # LogReader ABC, FileLogReader, generators, Batches
 │   ├── pipeline/               # map transforms, filters, reduce, pipe, itertools
 │   ├── decorators/             # @timer, @cache, @log_call
 │   ├── services/               # AnalyzerService, AnalyzerOptions
-│   ├── writers/                # JSON report writer
+│   ├── writers/                # ReportWriter ABC, JsonReportWriter
 │   └── utils/memory.py         # generator vs. list comparison
 ├── scripts/generate_logs.py    # builds the sample logs (fixed seed)
 ├── tests/                      # unit/ and integration/
@@ -406,6 +493,6 @@ with `log-analyzer/` and merges into the shared `main` through a pull request:
 | `log-analyzer/feature/regex-parsing` | project setup, regex patterns, validators, parser, sample logs |
 | `log-analyzer/feature/functional-pipeline` | map / filter / reduce / partial, pipeline helper |
 | `log-analyzer/feature/generators-decorators` | generators, iterator, itertools, decorators, service, CLI |
-| `log-analyzer/feature/tests-docs` | memory comparison, documentation |
+| `log-analyzer/feature/tests-docs` | memory comparison, application log file, documentation |
 
 Release tag: `log-analyzer-v1.0.0`.
