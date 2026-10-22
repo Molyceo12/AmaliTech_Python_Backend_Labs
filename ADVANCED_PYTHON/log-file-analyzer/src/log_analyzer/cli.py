@@ -5,15 +5,28 @@ import logging
 import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from pathlib import Path
 
 from log_analyzer.console import border, box_header, format_summary, step_printer
 from log_analyzer.decorators import last_duration
 from log_analyzer.exceptions import LogAnalyzerError
+from log_analyzer.logging_config import (
+    DEFAULT_LOG_FILE,
+    PACKAGE_LOGGER,
+    SHOWN_TO_USER,
+    configure_logging,
+)
+from log_analyzer.parsing import ApacheLogParser
+from log_analyzer.readers import FileLogReader
 from log_analyzer.services import AnalyzerOptions, AnalyzerService
+from log_analyzer.writers import JsonReportWriter
 
 DEFAULT_OUTPUT = "output/report.json"
 EXIT_OK = 0
 EXIT_ERROR = 1
+
+# Named explicitly: under "python -m log_analyzer.cli" __name__ is "__main__".
+logger = logging.getLogger(f"{PACKAGE_LOGGER}.cli")
 
 
 def positive_int(value: str) -> int:
@@ -86,7 +99,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--per-page", type=positive_int, default=20, help="entries per page"
     )
     parser.add_argument(
-        "-v", "--verbose", action="store_true", help="show timing and call tracing"
+        "--log-file",
+        type=Path,
+        default=DEFAULT_LOG_FILE,
+        help="where the tool writes its own log (every level)",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="also show every log message in the terminal",
     )
     return parser
 
@@ -108,21 +130,29 @@ def options_from(args: argparse.Namespace) -> AnalyzerOptions:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the analysis and return the exit code (0 = success, 1 = error)."""
     args = build_parser().parse_args(argv)
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.WARNING,
-        format="%(levelname)s %(name)s: %(message)s",
+    try:
+        log_file = configure_logging(args.log_file, args.verbose)
+    except LogAnalyzerError as error:
+        print(f"Error: {error}", file=sys.stderr)
+        return EXIT_ERROR
+    # The only place that picks the concrete reader, parser and writer.
+    service = AnalyzerService(
+        reader=FileLogReader(),
+        parser=ApacheLogParser(),
+        writer=JsonReportWriter(),
+        on_step=step_printer(),
     )
-    service = AnalyzerService(on_step=step_printer())
     print(box_header("Log File Analyzer"))
     try:
         result = service.run(args.paths, args.output, options_from(args))
     except LogAnalyzerError as error:
+        logger.error("Analysis failed: %s", error, extra={SHOWN_TO_USER: True})
         print(border())
         print(f"Error: {error}", file=sys.stderr)
         return EXIT_ERROR
     print(border())
     print()
-    print(format_summary(result, last_duration(service.run)))
+    print(format_summary(result, last_duration(service.run), log_file))
     return EXIT_OK
 
 

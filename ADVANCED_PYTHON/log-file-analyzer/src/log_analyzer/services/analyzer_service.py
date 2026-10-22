@@ -1,14 +1,15 @@
 """Analyzer service: read → parse → filter → report → write, for some log files."""
 
+import logging
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from operator import attrgetter
 from pathlib import Path
 
 from log_analyzer.decorators import log_call, timer
 from log_analyzer.models import LogEntry, LogReport
-from log_analyzer.parsing import parse_line
+from log_analyzer.parsing import ApacheLogParser, LogParser
 from log_analyzer.pipeline import (
     errors_by_status,
     paginate,
@@ -18,13 +19,14 @@ from log_analyzer.pipeline import (
     time_window,
     to_records,
 )
-from log_analyzer.readers import Batches, read_many
+from log_analyzer.readers import Batches, FileLogReader, LogReader
 from log_analyzer.services.options import AnalyzerOptions
-from log_analyzer.writers import write_report
+from log_analyzer.writers import JsonReportWriter, ReportWriter
 
 # Called after each finished step with the step name and a short detail.
 StepCallback = Callable[[str, str], None]
-ReportWriter = Callable[[LogReport, Path], Path]
+
+logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 500  # lines parsed per batch
 EARLIEST = datetime.min.replace(tzinfo=UTC)
@@ -60,27 +62,35 @@ class AnalysisResult:
 class AnalyzerService:
     """Runs a full analysis of one or more log files.
 
+    The reader, parser and writer are passed in as interfaces (dependency
+    inversion), so other sources, formats or test mocks can be used without
+    changing this class.
+
     Attributes:
-        writer: Saves the report (``write_report`` by default; tests use a mock).
+        reader: Where the lines come from (``FileLogReader`` by default).
+        parser: How a line becomes an entry (``ApacheLogParser`` by default).
+        writer: Where the report goes (``JsonReportWriter`` by default).
         on_step: Called after each finished step, e.g. to show progress.
         batch_size: How many lines are parsed per batch.
     """
 
-    writer: ReportWriter = write_report
+    reader: LogReader = field(default_factory=FileLogReader)
+    parser: LogParser = field(default_factory=ApacheLogParser)
+    writer: ReportWriter = field(default_factory=JsonReportWriter)
     on_step: StepCallback = _ignore_step
     batch_size: int = BATCH_SIZE
 
     def read_and_parse(self, paths: Iterable[str | Path]) -> ParsedLines:
         """Stream the lines of every file in batches and keep the valid entries.
 
-        Lines come from a generator (``read_many``) and are parsed batch by
-        batch, so only one batch of raw lines is in memory at a time.
+        Lines come from the reader's generator and are parsed batch by batch,
+        so only one batch of raw lines is in memory at a time.
         """
         entries: list[LogEntry] = []
         total = 0
-        for batch in Batches(read_many(paths), self.batch_size):
+        for batch in Batches(self.reader.read(paths), self.batch_size):
             total += len(batch)
-            entries.extend(filter(None, map(parse_line, batch)))
+            entries.extend(filter(None, map(self.parser.parse, batch)))
         return ParsedLines(entries, total)
 
     @staticmethod
@@ -138,22 +148,40 @@ class AnalyzerService:
             ValueError: If the page settings are less than 1.
         """
         settings = options or AnalyzerOptions()
+        logger.info(
+            "Analyzing %s with filters %s",
+            ", ".join(map(str, paths)),
+            settings.describe(),
+        )
         parsed = self.read_and_parse(paths)
-        self.on_step(
+        self._step(
             f"Reading {len(paths)} file(s)",
             f"{parsed.total_lines:,} lines, {parsed.skipped_lines:,} skipped",
         )
+        if parsed.skipped_lines:
+            logger.warning(
+                "%s line(s) did not match any log format and were skipped",
+                parsed.skipped_lines,
+            )
 
         selected = self.select(parsed.entries, settings)
-        self.on_step("Filtering the entries", f"{len(selected):,} entries match")
+        self._step("Filtering the entries", f"{len(selected):,} entries match")
+        if not selected:
+            logger.warning("No entries match the filters; the report is empty")
 
         report = self.build_report(paths, parsed, selected, settings)
-        self.on_step(
+        self._step(
             "Building the report",
             f"{len(report['requests_per_hour'])} hour(s), "
             f"{len(report['summary']['requests_per_status'])} status code(s)",
         )
 
-        written = self.writer(report, Path(output))
-        self.on_step("Writing the JSON report", "1 file")
+        written = self.writer.write(report, Path(output))
+        self._step("Writing the JSON report", "1 file")
+        logger.info("Report written to %s", written)
         return AnalysisResult(report, written)
+
+    def _step(self, step: str, detail: str) -> None:
+        """Log a finished step (INFO) and pass it to ``on_step``."""
+        logger.info("%s: %s", step, detail)
+        self.on_step(step, detail)

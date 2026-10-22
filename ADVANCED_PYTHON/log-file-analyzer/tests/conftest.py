@@ -1,13 +1,27 @@
 """Shared pytest fixtures."""
 
-from collections.abc import Callable
+import logging
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
 
+from log_analyzer.logging_config import PACKAGE_LOGGER
 from tests.helpers import DATA
 
 WriteLog = Callable[..., Path]
+
+
+@pytest.fixture(autouse=True)
+def fixture_reset_logging() -> Iterator[None]:
+    """Remove and close the handlers a test added, so log files are released."""
+    logger = logging.getLogger(PACKAGE_LOGGER)
+    before = list(logger.handlers)
+    yield
+    for handler in list(logger.handlers):
+        if handler not in before:
+            logger.removeHandler(handler)
+            handler.close()
 
 
 @pytest.fixture(name="access_lines")

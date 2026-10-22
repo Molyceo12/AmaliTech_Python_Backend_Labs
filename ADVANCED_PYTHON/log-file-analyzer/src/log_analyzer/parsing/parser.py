@@ -5,6 +5,7 @@ from datetime import datetime
 from log_analyzer.decorators import cache
 from log_analyzer.exceptions import LogParseError
 from log_analyzer.models import LogEntry
+from log_analyzer.parsing.base import LogParser
 from log_analyzer.patterns import LOG_FORMATS, TIMESTAMP_FORMAT
 from log_analyzer.patterns.cleaning import normalize_whitespace
 
@@ -84,3 +85,11 @@ def parse_line_strict(line: str, line_number: int) -> LogEntry:
             line_number, "does not match the common or combined log format"
         )
     return entry
+
+
+class ApacheLogParser(LogParser):
+    """Parses the Apache/Nginx combined and common formats (``LOG_FORMATS``)."""
+
+    def parse(self, line: str) -> LogEntry | None:
+        """Parse one line with ``parse_line``; ``None`` for a bad line."""
+        return parse_line(line)

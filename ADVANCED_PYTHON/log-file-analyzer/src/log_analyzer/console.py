@@ -4,6 +4,7 @@ Only the look of the output lives here; ``cli.py`` decides when to print it.
 """
 
 from itertools import count
+from pathlib import Path
 
 from log_analyzer.models import LogReport
 from log_analyzer.services import AnalysisResult, StepCallback
@@ -27,9 +28,15 @@ def boxed(text: str = "") -> str:
     return f"{SIDE}  {text}".ljust(BOX_WIDTH - len(SIDE)) + SIDE
 
 
+def centered(text: str) -> str:
+    """Return ``text`` in the middle of the box, between ``::`` side borders."""
+    inner = BOX_WIDTH - 2 * len(SIDE)
+    return f"{SIDE}{text.center(inner)}{SIDE}"
+
+
 def box_header(title: str) -> str:
-    """Return the top of a box: border, title line, border."""
-    return "\n".join([border(), boxed(title), border()])
+    """Return the top of a box: border, centered title line, border."""
+    return "\n".join([border(), centered(title), border()])
 
 
 def step_printer() -> StepCallback:
@@ -56,12 +63,15 @@ def _busiest_hour(report: LogReport) -> str:
     return f"{hour}:00 ({per_hour[hour]:,} requests)"
 
 
-def format_summary(result: AnalysisResult, seconds: float) -> str:
+def format_summary(
+    result: AnalysisResult, seconds: float, log_file: Path | None = None
+) -> str:
     """Return the summary box printed after a successful run.
 
     Args:
         result: Output of ``AnalyzerService.run``.
         seconds: How long the run took (from ``@timer``).
+        log_file: Where the tool's own log was written, if it was.
     """
     report = result.report
     summary = report["summary"]
@@ -79,5 +89,7 @@ def format_summary(result: AnalysisResult, seconds: float) -> str:
         f"6. Top IPs:{'' if top_ips else ' -'}",
         *top_ips,
     ]
+    if log_file is not None:
+        lines.append(f"7. Log saved to {log_file}")
     body = [boxed(line) for line in lines]
     return "\n".join([box_header("Summary"), *body, border()])

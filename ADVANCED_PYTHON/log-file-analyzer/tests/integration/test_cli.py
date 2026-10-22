@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from log_analyzer.cli import EXIT_ERROR, EXIT_OK, iso_datetime, main, positive_int
-from log_analyzer.console import border, boxed
+from log_analyzer.console import border, centered
 from tests.helpers import DATA
 
 ACCESS = str(DATA / "access.log")
@@ -18,7 +18,8 @@ ACCESS_2 = str(DATA / "access_2.log")
 def run(tmp_path: Path, *args: str) -> tuple[int, dict[str, object]]:
     """Run the CLI with its report in ``tmp_path``; return the code and report."""
     output = tmp_path / "report.json"
-    code = main([*args, "--output", str(output)])
+    log_file = tmp_path / "run.log"
+    code = main([*args, "--output", str(output), "--log-file", str(log_file)])
     report = json.loads(output.read_text(encoding="utf-8")) if output.exists() else {}
     return code, report
 
@@ -31,8 +32,8 @@ def test_sample_log_gives_a_report_and_two_boxes(
     assert code == EXIT_OK
     assert report["total_lines"] == 1200
     lines = capsys.readouterr().out.splitlines()
-    assert lines[:3] == [border(), boxed("Log File Analyzer"), border()]
-    assert boxed("Summary") in lines
+    assert lines[:3] == [border(), centered("Log File Analyzer"), border()]
+    assert centered("Summary") in lines
     assert lines.count(border()) == 6
     assert any("1. Requests analyzed: 1,200" in line for line in lines)
 
@@ -127,3 +128,40 @@ def test_positive_int() -> None:
     for bad in ("0", "-1", "two"):
         with pytest.raises(argparse.ArgumentTypeError):
             positive_int(bad)
+
+
+def test_run_writes_its_own_log_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Steps (INFO), skipped lines (WARNING) and tracing (DEBUG) go to the log."""
+    run(tmp_path, ACCESS, str(DATA / "malformed.log"))
+    log_text = (tmp_path / "run.log").read_text(encoding="utf-8")
+    service = "log_analyzer.services.analyzer_service"
+    assert f"INFO     {service}: Reading 2 file(s)" in log_text
+    assert f"WARNING  {service}: 6 line(s)" in log_text
+    assert "DEBUG    log_analyzer.decorators.tracing: Calling run(" in log_text
+    assert "INFO     log_analyzer.decorators.timing: run took" in log_text
+    out = capsys.readouterr().out
+    assert f"7. Log saved to {tmp_path / 'run.log'}" in out
+
+
+def test_failure_is_logged_once_and_printed_once(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The ERROR goes to the log file; the terminal shows ``Error:`` only once."""
+    run(tmp_path, "missing.log")
+    log_text = (tmp_path / "run.log").read_text(encoding="utf-8")
+    assert "ERROR    log_analyzer.cli: Analysis failed: Log file not found" in log_text
+    err = capsys.readouterr().err
+    assert err.count("Log file not found") == 1
+
+
+def test_unwritable_log_file_gives_exit_code_1(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """If the log cannot be created, nothing runs and the error is clear."""
+    blocker = tmp_path / "taken"
+    blocker.write_text("a file, not a folder", encoding="utf-8")
+    code = main([ACCESS, "--log-file", str(blocker / "run.log")])
+    assert code == EXIT_ERROR
+    assert capsys.readouterr().err.startswith("Error: Cannot write log file")
