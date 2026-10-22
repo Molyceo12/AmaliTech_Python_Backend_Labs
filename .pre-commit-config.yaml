@@ -1,16 +1,33 @@
 # Pre-commit hooks for the shared labs repo.
 # Python hooks only check the advanced Python labs listed below, so other labs are not affected.
 repos:
-  # Basic file checks: whitespace, final newline, valid YAML, no big files
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+  # Basic file checks: whitespace, final newline, valid YAML, no big files.
+  # They run with "python -m" from the log analyzer's .venv (pre-commit-hooks is
+  # a dev dependency there): Windows Application Control blocks the .exe files
+  # in pre-commit's own environment for these hooks.
+  - repo: local
     hooks:
       - id: trailing-whitespace
+        name: trim trailing whitespace
+        entry: ADVANCED_PYTHON\\log-file-analyzer\\.venv\\Scripts\\python.exe -m pre_commit_hooks.trailing_whitespace_fixer
+        language: system
+        types: [text]
         files: ^ADVANCED_PYTHON/(student-grade-analytics|log-file-analyzer)/
       - id: end-of-file-fixer
+        name: fix end of files
+        entry: ADVANCED_PYTHON\\log-file-analyzer\\.venv\\Scripts\\python.exe -m pre_commit_hooks.end_of_file_fixer
+        language: system
+        types: [text]
         files: ^ADVANCED_PYTHON/(student-grade-analytics|log-file-analyzer)/
       - id: check-yaml
+        name: check yaml
+        entry: ADVANCED_PYTHON\\log-file-analyzer\\.venv\\Scripts\\python.exe -m pre_commit_hooks.check_yaml
+        language: system
+        types: [yaml]
       - id: check-added-large-files
+        name: check for added large files
+        entry: ADVANCED_PYTHON\\log-file-analyzer\\.venv\\Scripts\\python.exe -m pre_commit_hooks.check_added_large_files
+        language: system
 
   # Ruff: lints and auto-fixes (imports, unused code, common bugs)
   - repo: https://github.com/astral-sh/ruff-pre-commit

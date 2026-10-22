@@ -9,6 +9,7 @@ from log_analyzer.console import (
     border,
     box_header,
     boxed,
+    centered,
     format_summary,
     step_printer,
 )
@@ -49,9 +50,17 @@ def test_long_text_pushes_the_border_out() -> None:
     assert boxed(text) == f"::  {text}::"
 
 
-def test_box_header() -> None:
-    """Border, title, border."""
-    assert box_header("T").splitlines() == [border(), boxed("T"), border()]
+def test_box_header_centers_the_title() -> None:
+    """Border, centered title, border."""
+    assert box_header("T").splitlines() == [border(), centered("T"), border()]
+
+
+def test_centered_puts_text_in_the_middle() -> None:
+    """Same width as the box, equal space on both sides of the text."""
+    line = centered("Summary")
+    assert len(line) == BOX_WIDTH
+    left, right = line[2:-2].split("Summary")
+    assert abs(len(left) - len(right)) <= 1
 
 
 def test_step_printer_numbers_and_aligns_steps(
@@ -81,6 +90,13 @@ def test_summary_box_lines() -> None:
     assert boxed("6. Top IPs:") in lines
     assert boxed("     10.0.0.1 (3 requests)") in lines
     assert lines[-1] == border()
+
+
+def test_summary_box_shows_the_log_file() -> None:
+    """When a log file was written, its path is the last line."""
+    result = AnalysisResult(make_report({"09": 1}), REPORT_PATH)
+    lines = format_summary(result, 0.0, Path("output/run.log")).splitlines()
+    assert lines[-2] == boxed(f"7. Log saved to {Path('output/run.log')}")
 
 
 def test_summary_box_without_requests() -> None:

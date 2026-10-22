@@ -10,7 +10,7 @@ from log_analyzer.exceptions import (
     LogFileNotFoundError,
     LogFilePermissionError,
 )
-from log_analyzer.readers import read_lines, read_many
+from log_analyzer.readers import FileLogReader, read_lines, read_many
 from tests.conftest import WriteLog
 
 
@@ -87,3 +87,10 @@ def test_read_many_opens_the_next_file_only_when_needed(write_log: WriteLog) -> 
     assert next(lines) == "a1"
     with pytest.raises(LogFileNotFoundError):
         next(lines)
+
+
+def test_file_log_reader_reads_files_in_order(write_log: WriteLog) -> None:
+    """``FileLogReader.read`` chains the files like ``read_many``."""
+    first = write_log(["a1"], "a.log")
+    second = write_log(["b1", "b2"], "b.log")
+    assert list(FileLogReader().read([first, second])) == ["a1", "b1", "b2"]

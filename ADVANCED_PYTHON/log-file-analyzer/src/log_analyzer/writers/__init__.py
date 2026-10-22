@@ -1,5 +1,6 @@
-"""Writing reports."""
+"""Writing reports: the writer interface and its JSON implementation."""
 
-from log_analyzer.writers.json_writer import write_report
+from log_analyzer.writers.base import ReportWriter
+from log_analyzer.writers.json_writer import JsonReportWriter
 
-__all__ = ["write_report"]
+__all__ = ["JsonReportWriter", "ReportWriter"]
