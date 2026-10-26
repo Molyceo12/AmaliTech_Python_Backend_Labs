@@ -3,7 +3,7 @@
 The job is to count the error responses (4xx/5xx) in a log file.
 
 Run ``python -m log_analyzer.utils.memory --copies 100`` to build a large log
-in ``output/`` and print the tables used in the README.
+at ``data/large_access.log`` (git-ignored) and print the tables used in the README.
 """
 
 import argparse
@@ -20,7 +20,7 @@ from log_analyzer.readers import read_lines
 
 DATA = Path(__file__).resolve().parents[3] / "data"
 DEFAULT_SOURCE = DATA / "access.log"
-DEFAULT_TARGET = Path("output/large_access.log")
+DEFAULT_TARGET = Path("data/large_access.log")
 DEFAULT_COPIES = 100
 
 Job = Callable[[Path], int]

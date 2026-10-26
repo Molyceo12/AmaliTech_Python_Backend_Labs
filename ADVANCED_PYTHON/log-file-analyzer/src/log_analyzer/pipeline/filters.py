@@ -6,7 +6,6 @@ fix the settings and leave a one-argument function that ``filter`` can use:
 """
 
 from collections.abc import Callable, Collection, Iterable, Iterator
-from datetime import datetime
 from functools import partial
 
 from log_analyzer.models import LogEntry
@@ -29,24 +28,8 @@ def by_method(method: str, entry: LogEntry) -> bool:
     return entry.method == method
 
 
-def by_ip(ip: str, entry: LogEntry) -> bool:
-    """Keep entries from this client IP address."""
-    return entry.ip == ip
-
-
-def in_time_range(start: datetime, end: datetime, entry: LogEntry) -> bool:
-    """Keep entries from ``start`` (included) up to ``end`` (excluded)."""
-    return start <= entry.timestamp < end
-
-
-# Specialised filters: the settings are fixed once with partial().
-only_success: Predicate = partial(by_status_range, 200, 299)
-only_redirects: Predicate = partial(by_status_range, 300, 399)
-only_client_errors: Predicate = partial(by_status_range, 400, 499)
-only_server_errors: Predicate = partial(by_status_range, 500, 599)
+# Specialised filter: the settings are fixed once with partial().
 only_errors: Predicate = partial(by_status_range, 400, 599)
-only_get: Predicate = partial(by_method, "GET")
-only_post: Predicate = partial(by_method, "POST")
 
 
 def select(predicate: Predicate, entries: Iterable[LogEntry]) -> Iterator[LogEntry]:
@@ -59,7 +42,7 @@ def select_all(
 ) -> Iterator[LogEntry]:
     """Keep the entries that pass every predicate.
 
-    Example: ``select_all([only_errors, only_post], entries)``.
+    Example: ``select_all([only_errors, partial(by_method, "POST")], entries)``.
     """
     checks = tuple(predicates)
     return filter(lambda entry: all(check(entry) for check in checks), entries)

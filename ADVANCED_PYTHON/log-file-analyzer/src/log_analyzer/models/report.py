@@ -53,8 +53,10 @@ class LogReport(TypedDict):
     total_lines: int
     parsed_lines: int
     skipped_lines: int
+    skipped_by_ip: dict[str, int]  # client IP → skipped lines
     filters: dict[str, str]
     summary: LogSummary
     requests_per_hour: dict[str, int]
     errors_by_status: dict[str, int]
+    referrer_ips: dict[str, int]  # IPs found in referrer URLs
     page: PageSection

@@ -15,18 +15,19 @@ entries, and decorators add timing, caching and call tracing.
 1. [Features](#features)
 2. [Setup](#setup)
 3. [Usage](#usage)
-4. [Sample output](#sample-output)
-5. [JSON report example](#json-report-example)
-6. [Architecture (SOLID)](#architecture-solid)
-7. [Regex patterns](#regex-patterns)
-8. [Functional pipeline](#functional-pipeline)
-9. [Generators and itertools](#generators-and-itertools)
-10. [Decorators](#decorators)
-11. [Application log](#application-log)
-12. [Generator vs. list performance](#generator-vs-list-performance)
-13. [Testing](#testing)
-14. [Project structure](#project-structure)
-15. [Git workflow](#git-workflow)
+4. [Test scenarios](#test-scenarios)
+5. [Sample output](#sample-output)
+6. [JSON report example](#json-report-example)
+7. [Architecture (SOLID)](#architecture-solid)
+8. [Regex patterns](#regex-patterns)
+9. [Functional pipeline](#functional-pipeline)
+10. [Generators and itertools](#generators-and-itertools)
+11. [Decorators](#decorators)
+12. [Application log](#application-log)
+13. [Generator vs. list performance](#generator-vs-list-performance)
+14. [Testing](#testing)
+15. [Project structure](#project-structure)
+16. [Git workflow](#git-workflow)
 
 ## Features
 
@@ -41,7 +42,7 @@ entries, and decorators add timing, caching and call tracing.
 - `@timer`, `@cache` (`functools.lru_cache`) and `@log_call` decorators
 - JSON report and bordered terminal output
 - Its own log file with levels (`output/log-analyzer.log`)
-- 203 tests, 100 % line and branch coverage, mypy strict, pre-commit hooks
+- 199 tests, 100 % line and branch coverage, mypy strict, pre-commit hooks
 
 ## Setup
 
@@ -94,6 +95,54 @@ Sample logs in `data/`: `access.log` (1,200 lines), `access_2.log` (300 lines,
 the next day) and `malformed.log` (10 lines, 4 valid). They are built by
 `scripts/generate_logs.py` with a fixed random seed.
 
+## Test scenarios
+
+Main ways to check the tool from the terminal.
+
+**1. Normal run:** 1,200 lines read, 0 skipped; summary with errors, busiest
+hour and top IPs; `output/report.json` written.
+
+```bash
+python -m poetry run log-analyzer data/access.log
+```
+
+**2. Two files:** both files read in order (1,500 lines) and analysed together.
+
+```bash
+python -m poetry run log-analyzer data/access.log data/access_2.log
+```
+
+**3. Malformed lines:** 10 lines, 6 skipped with a warning; the 4 valid lines
+are still analysed.
+
+```bash
+python -m poetry run log-analyzer data/malformed.log
+```
+
+**4. Errors only:** only 4xx/5xx responses kept (305 entries, 100 % errors).
+
+```bash
+python -m poetry run log-analyzer data/access.log --errors-only
+```
+
+**5. Time window:** only entries from 09:00 to 12:00 kept (167 entries, 3 hours).
+
+```bash
+python -m poetry run log-analyzer data/access.log --from 2026-10-20T09:00 --to 2026-10-20T12:00
+```
+
+**6. Missing file:** `Error: Log file not found: data\missing.log`, exit code `1`.
+
+```bash
+python -m poetry run log-analyzer data/missing.log
+```
+
+**7. Bad option:** `error: argument --top: must be at least 1, got 0`, exit code `2`.
+
+```bash
+python -m poetry run log-analyzer data/access.log --top 0
+```
+
 ## Sample output
 
 ```
@@ -140,6 +189,7 @@ Error: Log file not found: data\missing.log
   "total_lines": 1500,
   "parsed_lines": 1500,
   "skipped_lines": 0,
+  "skipped_by_ip": {},
   "filters": {},
   "summary": {
     "total_requests": 1500,
@@ -154,6 +204,7 @@ Error: Log file not found: data\missing.log
   },
   "requests_per_hour": { "00": 57, "01": 60, "02": 70, "03": 63, "...": "..." },
   "errors_by_status": { "400": 59, "401": 62, "403": 52, "404": 113, "500": 50, "503": 58 },
+  "referrer_ips": {},
   "page": {
     "number": 1,
     "per_page": 20,
@@ -274,11 +325,14 @@ COMBINED_LOG = re.compile(_COMMON_FIELDS + _COMBINED_EXTRA + r"$", re.VERBOSE)
 
 ### Validation (`patterns/validators.py`)
 
-| Pattern | Rule |
-|---|---|
-| IP | each octet `(?:25[0-5]\|2[0-4]\d\|1\d\d\|[1-9]?\d)`: 0–255, no leading zeros; `\b` word boundaries |
-| Email | `name@` + one or more domain labels + a 2+ letter top-level domain |
-| URL | `http://` or `https://`, host labels, optional `:port`, optional path |
+| Pattern | Rule | Used in `parse_line` |
+|---|---|---|
+| IP | each octet `(?:25[0-5]\|2[0-4]\d\|1\d\d\|[1-9]?\d)`: 0–255, no leading zeros; `\b` word boundaries | `is_valid_ip`: a line with an IP like `999.1.1.1` is skipped |
+| Email | `name@` + one or more domain labels + a 2+ letter top-level domain | `mask_emails`: emails in the URL become `***@***` |
+| URL | `http://` or `https://`, host labels or an IPv4 host, optional `:port`, optional path | `is_valid_url`: a referrer that is not an http(s) URL becomes `null`; the line is kept |
+
+The log regex only checks the **shape** of each field (`\d{1,3}` per IP part);
+the validators check that the **value** is real.
 
 ### Which `re` method is used where
 
@@ -286,9 +340,9 @@ COMBINED_LOG = re.compile(_COMMON_FIELDS + _COMBINED_EXTRA + r"$", re.VERBOSE)
 |---|---|---|
 | `re.compile` | build each pattern once | every pattern constant |
 | `match` | a log line must start with the pattern | `parse_line` |
-| `fullmatch` | the whole text must be valid | `is_valid_ip`, `is_valid_email`, `is_valid_url` |
-| `search` | first address anywhere in a text | `find_ip` |
-| `findall` | every address in a text | `find_all_ips` |
+| `fullmatch` | the whole text must be valid | `is_valid_ip`, `is_valid_url` |
+| `search` | first address anywhere in a text | `find_ip`: names the client of each skipped line (`skipped_by_ip`) |
+| `findall` | every address in a text | `find_all_ips`: counts the IPs inside referrer URLs (`referrer_ips`) |
 | `sub` | clean data | `strip_query_string` (`\?.*$`), `mask_emails`, `normalize_whitespace` (`\s+`) |
 
 ## Functional pipeline
@@ -452,7 +506,7 @@ python -m poetry run python -m pre_commit run --all-files     # Black, ruff, pyl
 | `tests/unit/` | log patterns and every named group, validators, cleaning, parser, model, sample data, transforms, filters and `partial`, aggregations, pipeline, reader (lazy, errors), batching iterator, itertools helpers, decorators (with `caplog`), options, service, JSON writer, terminal boxes, log file setup, abstract classes and custom subclasses, generator memory |
 | `tests/integration/` | the CLI on the real sample files: report, two chained files, filter options, log file contents, exit codes 0 / 1 / 2 |
 
-203 tests, 100 % line and branch coverage (`reports/coverage.txt`).
+199 tests, 100 % line and branch coverage (`reports/coverage.txt`).
 Regex tests use `pytest.mark.parametrize` with readable `ids` (e.g.
 `4-digit status`, `lowercase method`) for every bad line.
 

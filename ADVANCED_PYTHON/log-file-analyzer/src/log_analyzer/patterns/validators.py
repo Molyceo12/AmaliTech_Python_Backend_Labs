@@ -24,8 +24,12 @@ EMAIL_PATTERN = re.compile(
 URL_PATTERN = re.compile(
     r"""
     https?://                  # scheme: http or https
-    (?:[A-Za-z0-9-]+\.)+       # host labels, e.g. "www.example."
-    [A-Za-z]{2,}               # top-level domain
+    (?:
+        (?:[A-Za-z0-9-]+\.)+   # host labels, e.g. "www.example."
+        [A-Za-z]{2,}           # top-level domain
+    |
+        \d{1,3}(?:\.\d{1,3}){3}  # or an IPv4 host, e.g. "10.0.0.5"
+    )
     (?::\d{1,5})?              # optional port, e.g. ":8080"
     (?:/[^\s]*)?               # optional path and query string
     """,
@@ -36,11 +40,6 @@ URL_PATTERN = re.compile(
 def is_valid_ip(text: str) -> bool:
     """Return whether ``text`` is exactly one IPv4 address (each part 0–255)."""
     return IP_PATTERN.fullmatch(text) is not None
-
-
-def is_valid_email(text: str) -> bool:
-    """Return whether ``text`` is exactly one email address."""
-    return EMAIL_PATTERN.fullmatch(text) is not None
 
 
 def is_valid_url(text: str) -> bool:

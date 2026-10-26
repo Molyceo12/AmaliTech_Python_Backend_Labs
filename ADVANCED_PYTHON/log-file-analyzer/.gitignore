@@ -10,3 +10,6 @@ htmlcov/
 # Keep the lock file and the sample logs (both ignored at the repo root)
 !poetry.lock
 !data/*.log
+
+# Large test log built by the memory comparison (log_analyzer.utils.memory)
+data/large_access.log

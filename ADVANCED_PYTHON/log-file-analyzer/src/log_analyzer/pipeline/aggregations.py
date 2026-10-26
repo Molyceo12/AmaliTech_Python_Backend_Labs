@@ -5,11 +5,14 @@ iterator can only be read once, so pass a list (or a fresh iterator) to each
 aggregation.
 """
 
+from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
 from functools import partial, reduce
+from itertools import chain
 from operator import attrgetter
 
 from log_analyzer.models import CountItem, LogEntry
+from log_analyzer.patterns.validators import find_all_ips
 
 
 def count_requests(entries: Iterable[LogEntry]) -> int:
@@ -60,6 +63,18 @@ requests_per_url = partial(count_by, attrgetter("url"))
 def unique_urls(entries: Iterable[LogEntry]) -> set[str]:
     """Return every distinct URL."""
     return reduce(lambda urls, entry: urls | {entry.url}, entries, set[str]())
+
+
+def referrer_ips(entries: Iterable[LogEntry]) -> dict[str, int]:
+    """Count the IPv4 addresses found inside referrer URLs, most frequent first.
+
+    A raw IP in a referrer (e.g. ``http://10.0.0.5/admin``) often means
+    internal or unusual traffic. ``re.findall`` finds every address.
+    """
+    found = chain.from_iterable(
+        find_all_ips(entry.referrer) for entry in entries if entry.referrer
+    )
+    return dict(Counter(found).most_common())
 
 
 def top_n(counts: Mapping[str, int], n: int) -> list[CountItem]:

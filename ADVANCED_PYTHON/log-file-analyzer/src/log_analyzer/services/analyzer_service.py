@@ -1,6 +1,7 @@
 """Analyzer service: read → parse → filter → report → write, for some log files."""
 
 import logging
+from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -10,9 +11,11 @@ from pathlib import Path
 from log_analyzer.decorators import log_call, timer
 from log_analyzer.models import LogEntry, LogReport
 from log_analyzer.parsing import ApacheLogParser, LogParser
+from log_analyzer.patterns.validators import find_ip
 from log_analyzer.pipeline import (
     errors_by_status,
     paginate,
+    referrer_ips,
     requests_per_hour,
     select_all,
     summarize,
@@ -31,6 +34,7 @@ logger = logging.getLogger(__name__)
 BATCH_SIZE = 500  # lines parsed per batch
 EARLIEST = datetime.min.replace(tzinfo=UTC)
 LATEST = datetime.max.replace(tzinfo=UTC)
+UNKNOWN_IP = "unknown"  # skipped line with no IPv4 address in it
 
 
 def _ignore_step(*_: str) -> None:
@@ -43,6 +47,7 @@ class ParsedLines:
 
     entries: list[LogEntry]
     total_lines: int
+    skipped_by_ip: dict[str, int] = field(default_factory=dict)
 
     @property
     def skipped_lines(self) -> int:
@@ -84,14 +89,23 @@ class AnalyzerService:
         """Stream the lines of every file in batches and keep the valid entries.
 
         Lines come from the reader's generator and are parsed batch by batch,
-        so only one batch of raw lines is in memory at a time.
+        so only one batch of raw lines is in memory at a time. For each
+        skipped line, ``re.search`` looks for the client IP so the report can
+        show who sent it.
         """
         entries: list[LogEntry] = []
+        skipped: Counter[str] = Counter()
         total = 0
         for batch in Batches(self.reader.read(paths), self.batch_size):
             total += len(batch)
-            entries.extend(filter(None, map(self.parser.parse, batch)))
-        return ParsedLines(entries, total)
+            results = list(map(self.parser.parse, batch))
+            entries.extend(filter(None, results))
+            skipped.update(
+                find_ip(line) or UNKNOWN_IP
+                for line, entry in zip(batch, results, strict=True)
+                if entry is None
+            )
+        return ParsedLines(entries, total, dict(skipped.most_common()))
 
     @staticmethod
     def select(entries: list[LogEntry], options: AnalyzerOptions) -> list[LogEntry]:
@@ -118,10 +132,12 @@ class AnalyzerService:
             "total_lines": parsed.total_lines,
             "parsed_lines": len(parsed.entries),
             "skipped_lines": parsed.skipped_lines,
+            "skipped_by_ip": parsed.skipped_by_ip,
             "filters": options.describe(),
             "summary": summarize(selected, options.top),
             "requests_per_hour": requests_per_hour(selected),
             "errors_by_status": errors_by_status(selected),
+            "referrer_ips": referrer_ips(selected),
             "page": {
                 "number": options.page,
                 "per_page": options.per_page,

@@ -44,6 +44,8 @@ def test_run_builds_every_section(
     assert report["total_lines"] == 5
     assert report["parsed_lines"] == 4
     assert report["skipped_lines"] == 1
+    assert report["skipped_by_ip"] == {"unknown": 1}  # "garbage" has no IP
+    assert report["referrer_ips"] == {}
     assert report["summary"]["total_requests"] == 4
     assert report["errors_by_status"] == {"404": 1, "500": 1}
     assert report["requests_per_hour"] == {"09": 2, "10": 1, "13": 1}
@@ -158,3 +160,24 @@ def test_real_writer_errors_become_report_write_errors(
     blocker.write_text("a file, not a folder", encoding="utf-8")
     with pytest.raises(ReportWriteError, match="Cannot write report"):
         AnalyzerService().run([log_file], blocker / "report.json")
+
+
+def test_skipped_lines_are_counted_per_client_ip(
+    write_log: WriteLog, writer: MagicMock
+) -> None:
+    """``find_ip`` names the client of each bad line; no IP means unknown."""
+    bad_status = COMMON_LINE.replace(" 302 ", " 2000 ")
+    path = write_log([COMMON_LINE, bad_status, bad_status, "not a log line"])
+    report = AnalyzerService(writer=writer).run([path], "out.json").report
+    ip = COMMON_LINE.split()[0]
+    assert report["skipped_by_ip"] == {ip: 2, "unknown": 1}
+
+
+def test_ips_in_referrers_are_counted(write_log: WriteLog, writer: MagicMock) -> None:
+    """``find_all_ips`` lists the raw IPs that appear in referrer URLs."""
+    internal = COMBINED_LINE.replace(
+        COMBINED_LINE.split('"')[3], "http://10.0.0.5/admin"
+    )
+    path = write_log([COMBINED_LINE, internal, internal])
+    report = AnalyzerService(writer=writer).run([path], "out.json").report
+    assert report["referrer_ips"] == {"10.0.0.5": 2}

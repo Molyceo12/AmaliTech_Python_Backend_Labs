@@ -3,11 +3,11 @@
 from datetime import datetime
 
 from log_analyzer.decorators import cache
-from log_analyzer.exceptions import LogParseError
 from log_analyzer.models import LogEntry
 from log_analyzer.parsing.base import LogParser
 from log_analyzer.patterns import LOG_FORMATS, TIMESTAMP_FORMAT
-from log_analyzer.patterns.cleaning import normalize_whitespace
+from log_analyzer.patterns.cleaning import mask_emails, normalize_whitespace
+from log_analyzer.patterns.validators import is_valid_ip, is_valid_url
 
 NO_VALUE = "-"  # what logs write for a missing size or referrer
 
@@ -30,19 +30,27 @@ def _optional(value: str | None) -> str | None:
     return None if value in (None, NO_VALUE) else value
 
 
+def _url_or_none(value: str | None) -> str | None:
+    """Return the referrer when it is a real http(s) URL, else ``None``."""
+    return value if value is not None and is_valid_url(value) else None
+
+
 def parse_line(line: str) -> LogEntry | None:
     """Parse one log line in the combined or common format.
 
     Repeated spaces and the line break are cleaned first. Formats are tried
     from the most detailed (``LOG_FORMATS``), and the named groups of the
-    first match become the entry's fields.
+    first match become the entry's fields. The validators then check the
+    values the regex only shaped: the IP must be real (each part 0–255), the
+    referrer must be an http(s) URL, and emails in the URL are masked.
 
     Args:
         line: One raw line from an access log.
 
     Returns:
-        The parsed entry, or ``None`` when no format matches or the date is
-        invalid; this lets callers write ``filter(None, map(parse_line, lines))``.
+        The parsed entry, or ``None`` when no format matches, the IP is not
+        valid or the date is invalid; this lets callers write
+        ``filter(None, map(parse_line, lines))``.
     """
     cleaned = normalize_whitespace(line)
     for pattern in LOG_FORMATS:
@@ -50,6 +58,8 @@ def parse_line(line: str) -> LogEntry | None:
         if match is None:
             continue
         fields = match.groupdict()
+        if not is_valid_ip(fields["ip"]):
+            return None
         try:
             timestamp = parse_timestamp(fields["timestamp"])
         except ValueError:
@@ -59,32 +69,14 @@ def parse_line(line: str) -> LogEntry | None:
             ip=fields["ip"],
             timestamp=timestamp,
             method=fields["method"],
-            url=fields["url"],
+            url=mask_emails(fields["url"]),
             protocol=fields["protocol"],
             status=int(fields["status"]),
             size=None if size is None else int(size),
-            referrer=_optional(fields.get("referrer")),
+            referrer=_url_or_none(fields.get("referrer")),
             user_agent=_optional(fields.get("user_agent")),
         )
     return None
-
-
-def parse_line_strict(line: str, line_number: int) -> LogEntry:
-    """Parse one log line and raise an error instead of returning ``None``.
-
-    Args:
-        line: One raw line from an access log.
-        line_number: Line of the entry in its file (for the error message).
-
-    Raises:
-        LogParseError: If the line is not a valid common or combined log line.
-    """
-    entry = parse_line(line)
-    if entry is None:
-        raise LogParseError(
-            line_number, "does not match the common or combined log format"
-        )
-    return entry
 
 
 class ApacheLogParser(LogParser):
