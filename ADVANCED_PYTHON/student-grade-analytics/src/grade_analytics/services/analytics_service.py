@@ -1,5 +1,6 @@
 """Analytics service: read → analyse → write (→ charts), for one data file."""
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -13,6 +14,8 @@ from grade_analytics.writers import ReportWriter
 
 # Called after each finished step with the step name and a short detail.
 StepCallback = Callable[[str, str], None]
+
+logger = logging.getLogger(__name__)
 
 
 def _ignore_step(*_: str) -> None:
@@ -84,9 +87,13 @@ class AnalyticsService:
         if data.problems:
             detail += f", {len(data.problems)} rows skipped"
         self.on_step(f"Reading {input_path}", detail)
+        logger.info("Read %s: %s", input_path, detail)
 
         report = build_report(data, top_n=self.top_n, window=self.window)
         self.on_step("Calculating statistics", "report built")
+        logger.info(
+            "Statistics calculated (top=%s, window=%s)", self.top_n, self.window
+        )
 
         written = self.writer.write(report, output_path)
         self.on_step("Writing the JSON report", "1 file")
@@ -95,4 +102,5 @@ class AnalyticsService:
         if self.visualizer is not None:
             charts = self.visualizer.render(report, written.parent)
             self.on_step("Drawing the charts", f"{len(charts)} files")
+            logger.info("Drew %s charts in %s", len(charts), written.parent)
         return AnalysisResult(report, data.problems, written, charts)

@@ -2,6 +2,18 @@
 
 All notable changes to the Student Grade Analytics Tool.
 
+## [1.1.0] - 2026-10-26
+
+### Added
+
+- Logging to a rotating file (`logs/app.log`, 1 MB, three backups) set up in
+  `logging_config.py`; every module logs through `logging.getLogger(__name__)`
+- `--log-file` and `--log-level` command-line options
+- Skipped rows logged as warnings, failed runs as errors, unexpected
+  exceptions as critical with their traceback
+- Tests for the logging setup and the log file contents (140 tests, 100 %
+  coverage)
+
 ## [1.0.0] - 2026-10-21
 
 ### Added

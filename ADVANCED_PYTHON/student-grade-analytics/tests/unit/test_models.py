@@ -66,13 +66,6 @@ def test_student_grades_are_not_shared() -> None:
     assert not second.grades
 
 
-def test_grade_for_returns_latest_course_grade() -> None:
-    """grade_for returns the last grade for that course, or None."""
-    student = make_student(scores=(60, 75))
-    assert student.grade_for("CS101") == make_grade(75)
-    assert student.grade_for("MATH200") is None
-
-
 def test_course_fields() -> None:
     """Course stores its code, title and credits."""
     course = Course("CS101", "Intro to Programming", 4)

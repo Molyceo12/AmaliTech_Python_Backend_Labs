@@ -1,5 +1,6 @@
 """Turning raw rows into students, grades and courses."""
 
+import logging
 from collections.abc import Iterable
 from typing import Dict, List, NamedTuple, Union
 
@@ -9,6 +10,8 @@ from grade_analytics.readers.base import RawRecord
 from grade_analytics.readers.csv_reader import REQUIRED_HEADERS
 
 DEFAULT_CREDITS = 1
+
+logger = logging.getLogger(__name__)
 
 
 class ParsedRow(NamedTuple):
@@ -85,6 +88,7 @@ def build_students(records: Iterable[RawRecord]) -> LoadedData:
         try:
             row = parse_record(record)
         except InvalidRowError as error:
+            logger.warning("Skipped line %s: %s", error.line_number, error.reason)
             problems.append(RowProblem(error.line_number, error.reason))
             continue
         students.setdefault(row.student.student_id, row.student).grades.append(

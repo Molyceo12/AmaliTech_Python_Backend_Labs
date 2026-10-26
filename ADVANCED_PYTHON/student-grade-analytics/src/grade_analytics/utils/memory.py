@@ -6,11 +6,17 @@ the README's performance notes.
 
 import sys
 import tracemalloc
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from typing import Any, Dict, List, NamedTuple
 
+from grade_analytics.console import border, box_header, boxed
 from grade_analytics.models import ScoreRecord
+
+PEAK_LABELS = {
+    "list": "list (load everything first)",
+    "generator": "generator (one row at a time)",
+}
 
 
 @dataclass
@@ -124,28 +130,57 @@ def compare_list_vs_generator(count: int = 10_000) -> Dict[str, int]:
     return {"list": _peak_bytes(with_list), "generator": _peak_bytes(with_generator)}
 
 
-def format_table(rows: List[MemoryRow]) -> str:
-    """Render memory rows as a Markdown table."""
-    lines = [
-        "| Approach | Total (bytes) | Per record (bytes) |",
-        "|---|---:|---:|",
-    ]
-    lines += [
-        f"| {row.approach} | {row.total_bytes:,} | {row.bytes_per_item:g} |"
-        for row in rows
-    ]
-    return "\n".join(lines)
+def aligned_table(headers: Sequence[str], rows: Sequence[Sequence[str]]) -> List[str]:
+    """Return a text table with padded columns, one string per line.
+
+    The first column is left-aligned and the number columns right-aligned,
+    e.g. ``"dict                  |   1,925,176 |  192.5"``.
+    """
+    widths = [max(map(len, column)) for column in zip(headers, *rows, strict=True)]
+
+    def line(cells: Sequence[str]) -> str:
+        first, *numbers = cells
+        padded = [
+            cell.rjust(width) for cell, width in zip(numbers, widths[1:], strict=True)
+        ]
+        return " | ".join([first.ljust(widths[0]), *padded])
+
+    rule = "-+-".join("-" * width for width in widths)
+    return [line(headers), rule, *(line(row) for row in rows)]
+
+
+def format_table(rows: List[MemoryRow]) -> List[str]:
+    """Render the record sizes as an aligned table."""
+    return aligned_table(
+        ["Approach", "Total (bytes)", "Per record (bytes)"],
+        [
+            [row.approach, f"{row.total_bytes:,}", f"{row.bytes_per_item:g}"]
+            for row in rows
+        ],
+    )
+
+
+def format_peaks(peaks: Dict[str, int]) -> List[str]:
+    """Render the list vs generator peaks as an aligned table."""
+    return aligned_table(
+        ["Approach", "Peak (bytes)"],
+        [[PEAK_LABELS.get(name, name), f"{peak:,}"] for name, peak in peaks.items()],
+    )
+
+
+def _box(title: str, table: List[str]) -> str:
+    """Put a table inside a bordered box with a title."""
+    body = [boxed(), *map(boxed, table), boxed()]
+    return "\n".join([box_header(title), *body, border()])
 
 
 def main(count: int = 10_000) -> None:
-    """Print both comparisons as Markdown tables."""
-    print(f"Memory for {count:,} score records\n")
-    print(format_table(compare_record_sizes(count)))
-    peaks = compare_list_vs_generator(count)
-    print(f"\nPeak memory averaging {count:,} scores\n")
-    print("| Approach | Peak (bytes) |\n|---|---:|")
-    for name, peak in peaks.items():
-        print(f"| {name} | {peak:,} |")
+    """Print both comparisons as aligned tables in bordered boxes."""
+    sizes = format_table(compare_record_sizes(count))
+    peaks = format_peaks(compare_list_vs_generator(count))
+    print(_box(f"Memory for {count:,} score records", sizes))
+    print()
+    print(_box(f"Peak memory averaging {count:,} scores", peaks))
 
 
 if __name__ == "__main__":

@@ -1,12 +1,14 @@
 """End-to-end: sample CSV files through the command line to a JSON report."""
 
 import json
+import logging
 from pathlib import Path
 
 import pytest
 
 from grade_analytics.cli import EXIT_ERROR, EXIT_OK, EXIT_ROWS_SKIPPED, main
 from grade_analytics.console import border, boxed
+from grade_analytics.services import AnalyticsService
 from tests.helpers import CHART_FILES
 
 DATA = Path(__file__).resolve().parents[2] / "data"
@@ -109,4 +111,72 @@ def test_bad_numbers_are_rejected(tmp_path: Path, value: str) -> None:
     """--top and --window must be whole numbers of at least 1."""
     with pytest.raises(SystemExit) as exit_info:
         run("students.csv", tmp_path, "--window", value)
+    assert exit_info.value.code == 2
+
+
+def test_run_is_logged_to_file(tmp_path: Path) -> None:
+    """A normal run writes its start, progress and end to the log file."""
+    log_file = tmp_path / "logs" / "run.log"
+    assert run("students.csv", tmp_path, "--log-file", str(log_file)) == EXIT_OK
+    text = log_file.read_text(encoding="utf-8")
+    assert "| INFO     | grade_analytics.cli | Run started: input=" in text
+    assert "16 students, 48 grades" in text
+    assert "Report written to " in text
+    assert "Run finished: exit code 0" in text
+    assert "DEBUG" not in text  # default level is INFO
+
+
+def test_debug_level_and_skipped_rows_are_logged(tmp_path: Path) -> None:
+    """--log-level debug adds details; skipped rows are warnings."""
+    log_file = tmp_path / "run.log"
+    code = run(
+        "invalid_rows.csv",
+        tmp_path,
+        "--log-file",
+        str(log_file),
+        "--log-level",
+        "debug",
+        charts=True,
+    )
+    assert code == EXIT_ROWS_SKIPPED
+    text = log_file.read_text(encoding="utf-8")
+    assert "| DEBUG    | grade_analytics.readers.csv_reader | Headers: " in text
+    assert "Chart saved: " in text
+    assert "| WARNING  |" in text
+    assert "Skipped line 3: 'name' is empty" in text
+    assert "Run finished: exit code 2" in text
+
+
+def test_file_error_is_logged(tmp_path: Path) -> None:
+    """A failed run is logged as an error with its message."""
+    log_file = tmp_path / "run.log"
+    assert run("missing.csv", tmp_path, "--log-file", str(log_file)) == EXIT_ERROR
+    text = log_file.read_text(encoding="utf-8")
+    assert "| ERROR    | grade_analytics.cli | Run failed: Data file not found" in text
+    assert "Run finished: exit code 1" in text
+
+
+def test_unexpected_error_is_logged_and_raised(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A bug is logged as critical with its traceback, then re-raised."""
+
+    def broken_run(*_: object) -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(AnalyticsService, "run", broken_run)
+    with (
+        caplog.at_level(logging.INFO, logger="grade_analytics"),
+        pytest.raises(RuntimeError, match="boom"),
+    ):
+        run("students.csv", tmp_path)
+    critical = [r for r in caplog.records if r.levelname == "CRITICAL"]
+    assert len(critical) == 1
+    assert critical[0].exc_info is not None
+
+
+def test_bad_log_level_is_rejected(tmp_path: Path) -> None:
+    """--log-level only accepts the known level names."""
+    with pytest.raises(SystemExit) as exit_info:
+        run("students.csv", tmp_path, "--log-level", "loud")
     assert exit_info.value.code == 2
