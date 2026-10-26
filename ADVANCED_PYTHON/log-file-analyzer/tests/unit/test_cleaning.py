@@ -1,30 +1,16 @@
 """Tests for the ``re.sub()`` cleaning helpers."""
 
-import pytest
-
-from log_analyzer.patterns.cleaning import (
-    mask_emails,
-    normalize_whitespace,
-    strip_query_string,
-)
-
-
-@pytest.mark.parametrize(
-    ("url", "cleaned"),
-    [
-        ("/search?q=python", "/search"),
-        ("/search?q=regex&page=2", "/search"),
-        ("/about", "/about"),
-    ],
-)
-def test_strip_query_string(url: str, cleaned: str) -> None:
-    """Everything from ``?`` on is removed."""
-    assert strip_query_string(url) == cleaned
+from log_analyzer.patterns.cleaning import mask_emails, normalize_whitespace
 
 
 def test_mask_emails_hides_every_address() -> None:
     """Each email becomes ``***@***``; other text stays."""
     assert mask_emails("to=ann@mail.com&cc=bo@x.org") == "to=***@***&cc=***@***"
+
+
+def test_mask_emails_keeps_text_that_is_not_a_valid_email() -> None:
+    """``is_valid_email`` rejects ``user@host`` (no top-level domain), so it stays."""
+    assert mask_emails("/login?user=admin@localhost") == "/login?user=admin@localhost"
 
 
 def test_normalize_whitespace_collapses_and_trims() -> None:

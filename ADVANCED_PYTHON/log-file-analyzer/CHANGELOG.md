@@ -14,6 +14,9 @@ All notable changes to the Log File Analyzer.
 ### Changed
 
 - `is_valid_url` accepts an IPv4 host, e.g. `http://10.0.0.5/admin`
+- `time_window` uses `filter(in_time_range)` for the `--from` / `--to`
+  window (after `takewhile` stops at the end), instead of `dropwhile`
+- `mask_emails` masks only text that `is_valid_email` accepts
 - `parse_line` now uses the validators: a line with an invalid IP (e.g.
   `999.1.1.1`) is skipped, a referrer that is not an http(s) URL becomes
   `null`, and emails in the URL are masked as `***@***`
@@ -23,11 +26,12 @@ All notable changes to the Log File Analyzer.
 ### Removed
 
 - Unused helpers whose requirement is already met by code the app runs:
-  `is_valid_email` (email pattern used by `mask_emails`), `by_ip`,
-  `in_time_range` and the `only_success` / `only_redirects` /
+  `by_ip` and the `only_success` / `only_redirects` /
   `only_client_errors` / `only_server_errors` / `only_get` / `only_post`
   partials (`only_errors` and the `--status` / `--method` filters remain)
 - `parse_line_strict` and its `LogParseError`, which nothing called
+- `pipe`, `compose`, `clean_url`, `clean_urls` and `strip_query_string`,
+  which nothing called; steps are chained by direct calls instead
 
 ## [1.0.0] - 2026-10-21
 

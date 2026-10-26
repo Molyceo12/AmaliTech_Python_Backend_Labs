@@ -1,15 +1,6 @@
-"""Chaining the steps into one readable pipeline.
+"""The last pipeline step: totals and counts for the selected entries."""
 
-Example: the error entries of some log lines, with clean URLs::
-
-    errors = pipe(lines, parse_entries, clean_urls, partial(select, only_errors), list)
-
-The steps run left to right, like reading the sentence.
-"""
-
-from collections.abc import Callable, Iterable
-from functools import reduce
-from typing import Any
+from collections.abc import Iterable
 
 from log_analyzer.models import LogEntry, LogSummary
 from log_analyzer.pipeline.aggregations import (
@@ -24,24 +15,6 @@ from log_analyzer.pipeline.aggregations import (
     unique_urls,
 )
 from log_analyzer.pipeline.filters import only_errors, select
-
-Step = Callable[[Any], Any]
-
-
-def pipe(value: Any, *steps: Step) -> Any:
-    """Pass ``value`` through every step, left to right.
-
-    ``pipe(x, f, g)`` is ``g(f(x))``; with no steps it returns ``value``.
-    """
-    return reduce(lambda result, step: step(result), steps, value)
-
-
-def compose(*steps: Step) -> Step:
-    """Return one function that runs ``steps`` left to right.
-
-    Example: ``errors_of = compose(parse_entries, partial(select, only_errors))``.
-    """
-    return lambda value: pipe(value, *steps)
 
 
 def summarize(entries: Iterable[LogEntry], top: int = 5) -> LogSummary:

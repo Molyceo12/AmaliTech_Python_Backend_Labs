@@ -6,6 +6,7 @@ fix the settings and leave a one-argument function that ``filter`` can use:
 """
 
 from collections.abc import Callable, Collection, Iterable, Iterator
+from datetime import datetime
 from functools import partial
 
 from log_analyzer.models import LogEntry
@@ -26,6 +27,11 @@ def by_status(codes: Collection[int], entry: LogEntry) -> bool:
 def by_method(method: str, entry: LogEntry) -> bool:
     """Keep entries with this HTTP method, e.g. ``"GET"``."""
     return entry.method == method
+
+
+def in_time_range(start: datetime, end: datetime, entry: LogEntry) -> bool:
+    """Keep entries from ``start`` (included) up to ``end`` (excluded)."""
+    return start <= entry.timestamp < end
 
 
 # Specialised filter: the settings are fixed once with partial().

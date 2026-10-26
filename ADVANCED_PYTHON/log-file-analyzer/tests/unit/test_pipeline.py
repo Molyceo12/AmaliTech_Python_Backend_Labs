@@ -1,40 +1,13 @@
-"""Tests for chaining steps with ``pipe``/``compose`` and for ``summarize``."""
+"""Tests for chained pipeline steps and for ``summarize``."""
 
-from functools import partial
-
-from log_analyzer.pipeline import (
-    clean_urls,
-    compose,
-    only_errors,
-    parse_entries,
-    pipe,
-    select,
-    summarize,
-)
+from log_analyzer.pipeline import only_errors, parse_entries, select, summarize
 from tests.helpers import COMBINED_LINE, COMMON_LINE, SAMPLE_ENTRIES
 
 
-def test_pipe_without_steps_returns_the_value() -> None:
-    """Nothing to do: the value comes back."""
-    assert pipe(5) == 5
-
-
-def test_pipe_runs_steps_left_to_right() -> None:
-    """``pipe(x, f, g)`` is ``g(f(x))``."""
-    assert pipe(3, lambda x: x + 1, lambda x: x * 10) == 40
-
-
-def test_compose_matches_pipe() -> None:
-    """A composed function gives the same result as piping."""
-    steps = (parse_entries, clean_urls, partial(select, only_errors), list)
-    lines = [COMBINED_LINE, COMMON_LINE.replace(" 302 ", " 404 ")]
-    assert compose(*steps)(lines) == pipe(lines, *steps)
-
-
 def test_pipeline_on_log_lines() -> None:
-    """Lines → entries → clean URLs → errors only."""
+    """Lines → entries → errors only, each step feeding the next."""
     lines = [COMBINED_LINE, "bad", COMMON_LINE.replace(" 302 ", " 500 ")]
-    errors = pipe(lines, parse_entries, clean_urls, partial(select, only_errors), list)
+    errors = list(select(only_errors, parse_entries(lines)))
     assert [(entry.ip, entry.status) for entry in errors] == [("10.0.0.5", 500)]
 
 

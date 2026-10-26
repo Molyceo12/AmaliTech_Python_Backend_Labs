@@ -2,27 +2,29 @@
 
 import re
 
-from log_analyzer.patterns.validators import EMAIL_PATTERN
+from log_analyzer.patterns.validators import is_valid_email
 
-QUERY_STRING = re.compile(r"\?.*$")  # "?" and everything after it
 WHITESPACE = re.compile(r"\s+")  # runs of spaces, tabs and line breaks
 EMAIL_MASK = "***@***"
+# Anything shaped like name@host inside a URL; is_valid_email decides.
+EMAIL_CANDIDATE = re.compile(r"[^\s/?&=@]+@[^\s/?&=@]+")
 
 
-def strip_query_string(url: str) -> str:
-    """Remove the query string from a URL path.
-
-    Example: ``"/search?q=python"`` → ``"/search"``.
-    """
-    return QUERY_STRING.sub("", url)
+def _mask_if_valid(match: re.Match[str]) -> str:
+    """``re.sub`` callback: mask the candidate only if it is a valid email."""
+    candidate = match.group()
+    return EMAIL_MASK if is_valid_email(candidate) else candidate
 
 
 def mask_emails(text: str) -> str:
-    """Replace every email address with ``***@***`` (keeps logs anonymous).
+    """Replace every valid email address with ``***@***`` (keeps logs anonymous).
+
+    Each ``name@host`` candidate is checked with ``is_valid_email``; text that
+    only looks like an email (e.g. ``"user@host"``) is left as it is.
 
     Example: ``"user=ann@mail.com"`` → ``"user=***@***"``.
     """
-    return EMAIL_PATTERN.sub(EMAIL_MASK, text)
+    return EMAIL_CANDIDATE.sub(_mask_if_valid, text)
 
 
 def normalize_whitespace(line: str) -> str:

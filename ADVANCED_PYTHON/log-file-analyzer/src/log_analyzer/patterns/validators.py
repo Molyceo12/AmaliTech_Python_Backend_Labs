@@ -42,6 +42,11 @@ def is_valid_ip(text: str) -> bool:
     return IP_PATTERN.fullmatch(text) is not None
 
 
+def is_valid_email(text: str) -> bool:
+    """Return whether ``text`` is exactly one email address."""
+    return EMAIL_PATTERN.fullmatch(text) is not None
+
+
 def is_valid_url(text: str) -> bool:
     """Return whether ``text`` is exactly one http(s) URL."""
     return URL_PATTERN.fullmatch(text) is not None

@@ -76,7 +76,7 @@ def test_until_stops_at_the_first_later_entry() -> None:
 
 
 def test_time_window_includes_start_and_excludes_end() -> None:
-    """``dropwhile`` skips before ``start``; ``takewhile`` stops at ``end``."""
+    """``takewhile`` stops at ``end``; ``filter(in_time_range)`` drops earlier ones."""
     entries = [at(0), at(1), at(2), at(3)]
     window = list(time_window(TIMESTAMP + HOUR, TIMESTAMP + 3 * HOUR, entries))
     assert window == [at(1), at(2)]

@@ -5,6 +5,7 @@ import pytest
 from log_analyzer.patterns.validators import (
     find_all_ips,
     find_ip,
+    is_valid_email,
     is_valid_ip,
     is_valid_url,
 )
@@ -27,6 +28,22 @@ from log_analyzer.patterns.validators import (
 def test_is_valid_ip(text: str, valid: bool) -> None:
     """Exactly four octets, each from 0 to 255."""
     assert is_valid_ip(text) is valid
+
+
+@pytest.mark.parametrize(
+    ("text", "valid"),
+    [
+        ("ann@mail.com", True),
+        ("first.last+tag@sub.example.co.uk", True),
+        ("bad@", False),
+        ("@mail.com", False),
+        ("ann@mail", False),
+        ("ann mail@x.com", False),
+    ],
+)
+def test_is_valid_email(text: str, valid: bool) -> None:
+    """A name, ``@``, at least one domain label and a top-level domain."""
+    assert is_valid_email(text) is valid
 
 
 @pytest.mark.parametrize(
