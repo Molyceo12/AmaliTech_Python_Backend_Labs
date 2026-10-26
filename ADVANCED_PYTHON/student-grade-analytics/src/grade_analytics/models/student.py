@@ -30,15 +30,3 @@ class Student:
         if not self.grades:
             return None
         return sum(grade.score for grade in self.grades) / len(self.grades)
-
-    def grade_for(self, course_code: str) -> Optional[Grade]:
-        """Return the student's latest grade for a course.
-
-        Args:
-            course_code: Course identifier to look up.
-
-        Returns:
-            The last matching grade, or ``None`` if the student has none.
-        """
-        matches = [grade for grade in self.grades if grade.course_code == course_code]
-        return matches[-1] if matches else None

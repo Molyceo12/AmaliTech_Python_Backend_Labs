@@ -1,6 +1,7 @@
 """JSON implementation of the report writer."""
 
 import json
+import logging
 from pathlib import Path
 from typing import Union
 
@@ -8,6 +9,8 @@ from grade_analytics.exceptions import ReportWriteError
 from grade_analytics.models import GradeReport
 from grade_analytics.utils import atomic_write
 from grade_analytics.writers.base import ReportWriter
+
+logger = logging.getLogger(__name__)
 
 
 class JsonReportWriter(ReportWriter):
@@ -41,4 +44,5 @@ class JsonReportWriter(ReportWriter):
                 handle.write("\n")
         except OSError as error:
             raise ReportWriteError(f"Cannot write report {target}: {error}") from error
+        logger.info("Report written to %s", target)
         return target

@@ -35,19 +35,3 @@ def group_by_year(students: Iterable[Student]) -> Dict[int, List[Student]]:
     for student in students:
         groups[student.year].append(student)
     return dict(groups)
-
-
-def scores_by_semester(students: Iterable[Student]) -> Dict[str, List[float]]:
-    """Collect every score per semester.
-
-    Args:
-        students: Students whose grades are collected.
-
-    Returns:
-        Semester → all scores given in that semester.
-    """
-    scores: defaultdict[str, List[float]] = defaultdict(list)
-    for student in students:
-        for grade in student.grades:
-            scores[grade.semester].append(grade.score)
-    return dict(scores)

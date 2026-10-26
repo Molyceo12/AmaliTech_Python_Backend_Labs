@@ -15,16 +15,18 @@ full type hints.
 1. [Features](#features)
 2. [Setup](#setup)
 3. [Usage](#usage)
-4. [Input CSV format](#input-csv-format)
-5. [Sample output](#sample-output)
-6. [JSON report example](#json-report-example)
-7. [Charts](#charts)
-8. [Architecture](#architecture)
-9. [Collections used](#collections-used)
-10. [Collection performance notes](#collection-performance-notes)
-11. [Testing](#testing)
-12. [Project structure](#project-structure)
-13. [Git workflow](#git-workflow)
+4. [Test scenarios](#test-scenarios)
+5. [Logging](#logging)
+6. [Input CSV format](#input-csv-format)
+7. [Sample output](#sample-output)
+8. [JSON report example](#json-report-example)
+9. [Charts](#charts)
+10. [Architecture](#architecture)
+11. [Collections used](#collections-used)
+12. [Collection performance notes](#collection-performance-notes)
+13. [Testing](#testing)
+14. [Project structure](#project-structure)
+15. [Git workflow](#git-workflow)
 
 ## Features
 
@@ -39,7 +41,8 @@ full type hints.
 - JSON report (shape described by a `TypedDict`) written atomically
 - Five PNG charts; the terminal shows numbered progress steps and where each
   file was saved
-- 137 tests, 100 % line and branch coverage, mypy strict, pre-commit hooks
+- Run log in `logs/app.log` with levels (DEBUG to CRITICAL) and file rotation
+- 140 tests, 100 % line and branch coverage, mypy strict, pre-commit hooks
 
 ## Setup
 
@@ -77,6 +80,8 @@ python -m poetry run grade-analytics data/students.csv
 | `--top` | `5` | number of top performers (ties included) |
 | `--window` | `3` | semesters in the rolling average |
 | `--no-charts` | off | write only the JSON report |
+| `--log-file` | `logs/app.log` | file the run log is written to |
+| `--log-level` | `INFO` | lowest level logged: `DEBUG`, `INFO`, `WARNING`, `ERROR` |
 
 Exit codes: `0` success, `1` the analysis failed (file missing, unreadable, …),
 `2` finished but some rows were skipped.
@@ -87,6 +92,48 @@ Other ways to run it:
 python -m poetry run python -m grade_analytics.cli data/students.csv --top 3 --window 2
 python -m poetry run grade-analytics data/invalid_rows.csv --no-charts
 ```
+
+## Test scenarios
+
+Main ways to check the tool from the terminal:
+
+| # | Scenario | Command | Expected result |
+|---|---|---|---|
+| 1 | Normal run | `python -m poetry run grade-analytics data/students.csv` | Progress steps and summary; `output/report.json` and 5 charts written |
+| 2 | Invalid rows | `python -m poetry run grade-analytics data/invalid_rows.csv` | Bad rows skipped and listed with line numbers (e.g. `Line 5: score 'eighty' is not a number`); the rest is still analysed |
+| 3 | Missing file | `python -m poetry run grade-analytics data/nope.csv` | `Error: Data file not found: data\nope.csv`, exit code `1` |
+| 4 | Bad option | `python -m poetry run grade-analytics data/students.csv --top 0` | `error: argument --top: must be at least 1, got 0` |
+| 5 | Good option | `python -m poetry run grade-analytics data/students.csv --top 10` | Top 10 performers in the report (more if tied with 10th place) |
+
+## Logging
+
+Every run is logged to `logs/app.log` (created on the first run, ignored by
+git). The terminal output stays the same; the log file is the record you can
+read later.
+
+| Level | What is logged |
+|---|---|
+| `DEBUG` | file opened, CSV headers, each chart saved (only with `--log-level DEBUG`) |
+| `INFO` | run started (with its options), rows read, statistics calculated, report written, charts drawn, run finished with its exit code |
+| `WARNING` | each skipped row with its line number and reason |
+| `ERROR` | the run failed (`GradeAnalyticsError`: missing file, bad headers, …) |
+| `CRITICAL` | an unexpected error, with its full traceback |
+
+The file rotates at about 1 MB and keeps three old copies (`app.log.1` …
+`app.log.3`). If the log file cannot be written, a warning is printed and the
+analysis still runs.
+
+Example (`data/invalid_rows.csv`):
+
+```
+2026-10-26 10:02:11,481 | INFO     | grade_analytics.cli | Run started: input=data/invalid_rows.csv output=output/report.json top=5 window=3 charts=True
+2026-10-26 10:02:11,483 | WARNING  | grade_analytics.readers.student_builder | Skipped line 3: 'name' is empty
+2026-10-26 10:02:11,483 | WARNING  | grade_analytics.readers.student_builder | Skipped line 5: score 'eighty' is not a number
+2026-10-26 10:02:11,612 | INFO     | grade_analytics.cli | Run finished: exit code 2
+```
+
+Only `cli.py` configures logging (`logging_config.setup_logging`); every other
+module just uses `logging.getLogger(__name__)`.
 
 ## Input CSV format
 
@@ -320,9 +367,9 @@ python -m poetry run python -m pre_commit run --all-files               # Black,
 | Folder | What is tested |
 |---|---|
 | `tests/unit/` | models, every collection aggregator, reader, row builder, writer, statistics, rankings, trends, report, service (mocked reader/writer/visualizer), charts, memory comparison, terminal boxes |
-| `tests/integration/` | the CLI on the real sample files: report, charts, exit codes 0 / 1 / 2 |
+| `tests/integration/` | the CLI on the real sample files: report, charts, exit codes 0 / 1 / 2, log file contents |
 
-137 tests, 100 % line and branch coverage (`reports/coverage.txt`). Tests use
+140 tests, 100 % line and branch coverage (`reports/coverage.txt`). Tests use
 fixtures (`conftest.py`), `parametrize`, `tmp_path` and `pytest-mock`.
 
 ## Project structure
@@ -333,6 +380,7 @@ student-grade-analytics/
 │   ├── cli.py                  # command line (only place that picks concrete classes)
 │   ├── console.py              # terminal output: bordered boxes, steps, summary
 │   ├── exceptions.py           # GradeAnalyticsError and subclasses
+│   ├── logging_config.py       # rotating log file setup
 │   ├── models/                 # Grade, Student, Course, LoadedData, RowProblem, report TypedDicts
 │   ├── aggregators/            # Counter, defaultdict, OrderedDict, deque helpers
 │   ├── readers/                # RecordReader interface, CsvRecordReader, student builder
@@ -340,9 +388,10 @@ student-grade-analytics/
 │   ├── writers/                # ReportWriter interface, JsonReportWriter
 │   ├── visualization/          # ReportVisualizer interface, MatplotlibVisualizer
 │   ├── services/               # AnalyticsService
-│   └── utils/                  # atomic_write, text bar chart, memory comparison
+│   └── utils/                  # atomic_write, memory comparison
 ├── tests/                      # unit/ and integration/
 ├── data/                       # sample CSV files
+├── logs/                       # run log (created on first run, not in git)
 ├── assets/                     # README charts and screenshot
 ├── reports/coverage.txt
 ├── pyproject.toml, poetry.lock, requirements.txt

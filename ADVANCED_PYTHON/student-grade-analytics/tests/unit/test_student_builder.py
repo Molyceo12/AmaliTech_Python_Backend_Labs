@@ -1,5 +1,7 @@
 """Tests for turning raw records into students and courses."""
 
+import logging
+
 import pytest
 
 from grade_analytics.models import Course, Grade, LoadedData, RowProblem
@@ -66,13 +68,16 @@ def test_courses_default_when_columns_missing() -> None:
     ],
 )
 def test_bad_rows_are_skipped_and_reported(
-    changes: dict[str, str], reason: str
+    changes: dict[str, str], reason: str, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """A bad row is skipped with its line number; good rows still load."""
-    data = build_students([record(2), record(3, **changes)])
+    """A bad row is skipped with its line number and logged as a warning."""
+    with caplog.at_level(logging.WARNING, logger="grade_analytics"):
+        data = build_students([record(2), record(3, **changes)])
     assert [s.student_id for s in data.students] == ["S001"]
     assert len(data.students[0].grades) == 1
     assert data.problems == [RowProblem(3, reason)]
+    assert [r.levelname for r in caplog.records] == ["WARNING"]
+    assert caplog.records[0].getMessage() == f"Skipped line 3: {reason}"
 
 
 def test_no_records_gives_no_students() -> None:

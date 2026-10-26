@@ -1,5 +1,6 @@
 """PNG charts drawn with matplotlib's object-oriented API (no GUI, no pyplot)."""
 
+import logging
 from collections.abc import Sequence
 from pathlib import Path
 from typing import List, Optional, Union
@@ -14,6 +15,8 @@ from grade_analytics.visualization.base import ReportVisualizer
 DPI = 100
 BAR_COLOR = "#4C72B0"
 LINE_COLOR = "#DD8452"
+
+logger = logging.getLogger(__name__)
 
 
 class MatplotlibVisualizer(ReportVisualizer):
@@ -51,6 +54,7 @@ class MatplotlibVisualizer(ReportVisualizer):
                     path = folder / name
                     figure.savefig(path, dpi=DPI)
                     written.append(path)
+                    logger.debug("Chart saved: %s", path)
         except OSError as error:
             raise ReportWriteError(f"Cannot save chart in {folder}: {error}") from error
         return written

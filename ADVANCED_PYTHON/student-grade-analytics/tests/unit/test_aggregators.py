@@ -11,10 +11,8 @@ from grade_analytics.aggregators import (
     group_by_major,
     group_by_year,
     ordered_sections,
-    scores_by_semester,
 )
 from grade_analytics.models import Grade, Student
-from tests.helpers import make_grade, make_student
 
 
 def test_grade_distribution_counts_each_letter(sample_grades: list[Grade]) -> None:
@@ -55,17 +53,6 @@ def test_grouping_empty_input_gives_empty_dict() -> None:
     """No students means no groups (and a plain dict is returned)."""
     assert not group_by_major([])
     assert isinstance(group_by_year([]), dict)
-
-
-def test_scores_by_semester() -> None:
-    """Scores are collected per semester across all students."""
-    student = make_student(scores=())
-    student.grades += [
-        make_grade(70, semester="2026-S1"),
-        make_grade(90, semester="2026-S2"),
-        make_grade(80, semester="2026-S1"),
-    ]
-    assert scores_by_semester([student]) == {"2026-S1": [70, 80], "2026-S2": [90]}
 
 
 def test_ordered_sections_keep_insertion_order() -> None:

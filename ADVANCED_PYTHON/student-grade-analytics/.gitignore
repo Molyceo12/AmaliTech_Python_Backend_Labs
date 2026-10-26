@@ -4,6 +4,9 @@ docs/
 # Generated reports
 output/
 
+# Run logs
+logs/
+
 # Coverage HTML
 htmlcov/
 

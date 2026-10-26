@@ -1,6 +1,7 @@
 """CSV reader: reads rows only; turning them into students is a separate step."""
 
 import csv
+import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -22,6 +23,8 @@ REQUIRED_HEADERS = (
     "semester",
     "score",
 )
+
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -78,12 +81,14 @@ class CsvRecordReader(RecordReader):
                 misses required headers.
         """
         csv_path = Path(path)
+        logger.debug("Opening %s", csv_path)
         with open_data_file(csv_path) as handle:
             try:
                 reader = csv.DictReader(handle)
                 if reader.fieldnames is None:
                     raise DataFileFormatError(f"Data file is empty: {csv_path}")
                 reader.fieldnames = [name.strip().lower() for name in reader.fieldnames]
+                logger.debug("Headers: %s", ", ".join(reader.fieldnames))
                 missing = [h for h in REQUIRED_HEADERS if h not in reader.fieldnames]
                 if missing:
                     raise DataFileFormatError(
