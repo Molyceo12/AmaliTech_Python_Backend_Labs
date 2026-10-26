@@ -28,10 +28,12 @@ def make_report(per_hour: dict[str, int], with_entries: bool = True) -> LogRepor
         "total_lines": 7,
         "parsed_lines": 5,
         "skipped_lines": 2,
+        "skipped_by_ip": {"unknown": 2},
         "filters": {},
         "summary": summarize(SAMPLE_ENTRIES if with_entries else [], top=2),
         "requests_per_hour": per_hour,
         "errors_by_status": {},
+        "referrer_ips": {},
         "page": {"number": 1, "per_page": 20, "entries": []},
     }
 

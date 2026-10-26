@@ -2,9 +2,8 @@
 
 import pytest
 
-from log_analyzer.exceptions import LogParseError
 from log_analyzer.models import LogEntry
-from log_analyzer.parsing import parse_line, parse_line_strict, parse_timestamp
+from log_analyzer.parsing import parse_line, parse_timestamp
 from tests.helpers import COMBINED_LINE, COMMON_LINE, TIMESTAMP
 
 
@@ -46,6 +45,29 @@ def test_dash_referrer_becomes_none() -> None:
     assert entry.referrer is None
 
 
+@pytest.mark.parametrize("ip", ["999.1.1.1", "256.0.0.1", "192.168.01.10"])
+def test_line_with_an_invalid_ip_gives_none(ip: str) -> None:
+    """``is_valid_ip`` rejects IPs the loose log regex lets through."""
+    assert parse_line(COMBINED_LINE.replace("192.168.1.10", ip)) is None
+
+
+@pytest.mark.parametrize("referrer", ["not-a-url", "ftp://example.com/"])
+def test_referrer_that_is_not_an_http_url_becomes_none(referrer: str) -> None:
+    """``is_valid_url`` keeps only http(s) referrers; the line itself is kept."""
+    line = COMBINED_LINE.replace("https://example.com/", referrer)
+    entry = parse_line(line)
+    assert entry is not None
+    assert entry.referrer is None
+
+
+def test_email_in_the_url_is_masked() -> None:
+    """Emails in the path or query string never reach the report."""
+    line = COMBINED_LINE.replace("/index.html?page=2", "/reset?email=ann@mail.com")
+    entry = parse_line(line)
+    assert entry is not None
+    assert entry.url == "/reset?email=***@***"
+
+
 def test_messy_whitespace_is_cleaned_before_matching() -> None:
     """Extra spaces, tabs and the line break do not stop a match."""
     messy = "  " + COMMON_LINE.replace(" ", "  ").replace("  [", "\t[") + "\n"
@@ -71,15 +93,3 @@ def test_parse_line_works_with_filter_and_map() -> None:
     """``filter(None, map(parse_line, lines))`` keeps only the good entries."""
     entries = list(filter(None, map(parse_line, [COMBINED_LINE, "bad", COMMON_LINE])))
     assert [entry.ip for entry in entries] == ["192.168.1.10", "10.0.0.5"]
-
-
-def test_strict_parser_returns_the_entry() -> None:
-    """Good lines parse the same way as ``parse_line``."""
-    assert parse_line_strict(COMMON_LINE, 1) == parse_line(COMMON_LINE)
-
-
-def test_strict_parser_raises_with_the_line_number() -> None:
-    """Bad lines raise ``LogParseError`` naming the line."""
-    with pytest.raises(LogParseError, match="Line 7: does not match") as error:
-        parse_line_strict("bad line", 7)
-    assert error.value.line_number == 7

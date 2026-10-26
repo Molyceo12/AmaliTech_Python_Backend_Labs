@@ -1,11 +1,13 @@
 """Tests for the ``reduce()`` aggregations, on entries with known totals."""
 
+from dataclasses import replace
 from operator import attrgetter
 
 from log_analyzer.pipeline import (
     count_by,
     count_requests,
     error_rate,
+    referrer_ips,
     requests_per_ip,
     requests_per_method,
     requests_per_status,
@@ -14,7 +16,7 @@ from log_analyzer.pipeline import (
     total_bytes,
     unique_urls,
 )
-from tests.helpers import SAMPLE_ENTRIES
+from tests.helpers import SAMPLE_ENTRIES, make_entry
 
 
 def test_count_requests() -> None:
@@ -77,3 +79,14 @@ def test_empty_input_gives_zeros() -> None:
     assert total_bytes([]) == 0
     assert requests_per_status([]) == {}
     assert unique_urls([]) == set()
+
+
+def test_referrer_ips_counts_addresses_in_referrers() -> None:
+    """Every IP inside a referrer is counted; entries without one are ignored."""
+    entries = [
+        replace(make_entry(), referrer="http://10.0.0.5/a"),
+        replace(make_entry(), referrer="http://10.0.0.5/b?from=8.8.8.8"),
+        replace(make_entry(), referrer="https://example.com/"),
+        make_entry(),
+    ]
+    assert referrer_ips(entries) == {"10.0.0.5": 2, "8.8.8.8": 1}
