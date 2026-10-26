@@ -2,11 +2,12 @@
 
 from collections.abc import Callable, Iterable, Iterator
 from datetime import datetime
-from itertools import dropwhile, groupby, islice, takewhile
+from functools import partial
+from itertools import groupby, islice, takewhile
 from typing import TypeVar
 
 from log_analyzer.models import LogEntry
-from log_analyzer.pipeline.filters import only_errors
+from log_analyzer.pipeline.filters import in_time_range, only_errors
 
 T = TypeVar("T")
 K = TypeVar("K", int, str)
@@ -73,7 +74,8 @@ def time_window(
 ) -> Iterator[LogEntry]:
     """Yield entries from ``start`` (included) to ``end`` (excluded).
 
-    ``dropwhile`` skips the entries before ``start``, then ``until`` stops at
-    ``end``. Like ``until``, this expects entries in time order.
+    ``until`` (``takewhile``) stops reading at ``end``, so later entries are
+    never checked; ``filter(in_time_range)`` then keeps only the entries
+    inside the window. Like ``until``, this expects entries in time order.
     """
-    return until(end, dropwhile(lambda entry: entry.timestamp < start, entries))
+    return filter(partial(in_time_range, start, end), until(end, entries))

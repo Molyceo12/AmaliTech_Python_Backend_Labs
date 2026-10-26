@@ -3,8 +3,6 @@
 from collections.abc import Iterator
 
 from log_analyzer.pipeline import (
-    clean_url,
-    clean_urls,
     parse_entries,
     to_record,
     to_records,
@@ -31,21 +29,6 @@ def test_parse_entries_is_lazy() -> None:
     assert not read
     next(entries)
     assert read == [COMBINED_LINE]
-
-
-def test_clean_url_returns_a_new_entry() -> None:
-    """The query string is removed; the original frozen entry is unchanged."""
-    entry = make_entry(url="/search?q=python")
-    cleaned = clean_url(entry)
-    assert cleaned.url == "/search"
-    assert entry.url == "/search?q=python"
-    assert cleaned.status == entry.status
-
-
-def test_clean_urls_maps_every_entry() -> None:
-    """Every URL loses its query string."""
-    entries = [make_entry(url="/a?x=1"), make_entry(url="/b")]
-    assert [entry.url for entry in clean_urls(entries)] == ["/a", "/b"]
 
 
 def test_to_record_gives_a_plain_dict() -> None:

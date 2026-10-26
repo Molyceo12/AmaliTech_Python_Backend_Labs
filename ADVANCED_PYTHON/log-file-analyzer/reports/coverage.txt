@@ -9,24 +9,24 @@ collected 199 items
 tests\integration\test_cli.py .............                              [  6%]
 tests\unit\test_aggregations.py .........                                [ 11%]
 tests\unit\test_batching.py .......                                      [ 14%]
-tests\unit\test_cleaning.py .....                                        [ 17%]
-tests\unit\test_console.py ........                                      [ 21%]
-tests\unit\test_decorators.py .........                                  [ 25%]
-tests\unit\test_filters.py ...........                                   [ 31%]
+tests\unit\test_cleaning.py ...                                          [ 16%]
+tests\unit\test_console.py ........                                      [ 20%]
+tests\unit\test_decorators.py .........                                  [ 24%]
+tests\unit\test_filters.py ............                                  [ 30%]
 tests\unit\test_interfaces.py .........                                  [ 35%]
 tests\unit\test_json_writer.py ..                                        [ 36%]
 tests\unit\test_log_patterns.py ............                             [ 42%]
-tests\unit\test_log_reader.py ...........                                [ 48%]
+tests\unit\test_log_reader.py ...........                                [ 47%]
 tests\unit\test_logging_config.py .......                                [ 51%]
-tests\unit\test_memory.py .........                                      [ 56%]
-tests\unit\test_models.py ........                                       [ 60%]
+tests\unit\test_memory.py .........                                      [ 55%]
+tests\unit\test_models.py ........                                       [ 59%]
 tests\unit\test_options.py ...                                           [ 61%]
 tests\unit\test_parser.py ................                               [ 69%]
-tests\unit\test_pipeline.py ........                                     [ 73%]
-tests\unit\test_sample_data.py ...                                       [ 75%]
-tests\unit\test_service.py ..............                                [ 82%]
-tests\unit\test_transforms.py ......                                     [ 85%]
-tests\unit\test_validators.py ..................                         [ 94%]
+tests\unit\test_pipeline.py .....                                        [ 71%]
+tests\unit\test_sample_data.py ...                                       [ 73%]
+tests\unit\test_service.py ..............                                [ 80%]
+tests\unit\test_transforms.py ....                                       [ 82%]
+tests\unit\test_validators.py ........................                   [ 94%]
 tests\unit\test_windowing.py ...........                                 [100%]
 
 =============================== tests coverage ================================
@@ -50,15 +50,15 @@ src\log_analyzer\parsing\__init__.py                3      0      0      0   100
 src\log_analyzer\parsing\base.py                    3      0      0      0   100%
 src\log_analyzer\parsing\parser.py                 34      0      6      0   100%
 src\log_analyzer\patterns\__init__.py               2      0      0      0   100%
-src\log_analyzer\patterns\cleaning.py              11      0      0      0   100%
+src\log_analyzer\patterns\cleaning.py              12      0      0      0   100%
 src\log_analyzer\patterns\log_patterns.py           7      0      0      0   100%
-src\log_analyzer\patterns\validators.py            14      0      0      0   100%
+src\log_analyzer\patterns\validators.py            16      0      0      0   100%
 src\log_analyzer\pipeline\__init__.py               6      0      0      0   100%
 src\log_analyzer\pipeline\aggregations.py          33      0      0      0   100%
-src\log_analyzer\pipeline\filters.py               16      0      0      0   100%
-src\log_analyzer\pipeline\pipeline.py              16      0      0      0   100%
-src\log_analyzer\pipeline\transforms.py            15      0      0      0   100%
-src\log_analyzer\pipeline\windowing.py             29      0      4      0   100%
+src\log_analyzer\pipeline\filters.py               19      0      0      0   100%
+src\log_analyzer\pipeline\pipeline.py               9      0      0      0   100%
+src\log_analyzer\pipeline\transforms.py             9      0      0      0   100%
+src\log_analyzer\pipeline\windowing.py             30      0      4      0   100%
 src\log_analyzer\readers\__init__.py                4      0      0      0   100%
 src\log_analyzer\readers\base.py                    4      0      0      0   100%
 src\log_analyzer\readers\batching.py               17      0      4      0   100%
@@ -72,6 +72,6 @@ src\log_analyzer\writers\__init__.py                3      0      0      0   100
 src\log_analyzer\writers\base.py                    4      0      0      0   100%
 src\log_analyzer\writers\json_writer.py            16      0      0      0   100%
 -------------------------------------------------------------------------------------------
-TOTAL                                             694      0     62      0   100%
+TOTAL                                             688      0     62      0   100%
 Required test coverage of 90.0% reached. Total coverage: 100.00%
-============================= 199 passed in 8.96s =============================
+============================ 199 passed in 23.84s =============================

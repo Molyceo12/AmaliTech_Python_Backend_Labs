@@ -4,12 +4,10 @@ Every function returns a lazy iterator, so nothing is processed until the
 result is read.
 """
 
-import dataclasses
 from collections.abc import Iterable, Iterator
 
 from log_analyzer.models import LogEntry, LogRecord
 from log_analyzer.parsing import parse_line
-from log_analyzer.patterns.cleaning import strip_query_string
 
 
 def parse_entries(lines: Iterable[str]) -> Iterator[LogEntry]:
@@ -19,19 +17,6 @@ def parse_entries(lines: Iterable[str]) -> Iterator[LogEntry]:
     drops the ``None`` results.
     """
     return filter(None, map(parse_line, lines))
-
-
-def clean_url(entry: LogEntry) -> LogEntry:
-    """Return a copy of ``entry`` without the URL's query string.
-
-    Entries are frozen, so ``dataclasses.replace`` builds a new one.
-    """
-    return dataclasses.replace(entry, url=strip_query_string(entry.url))
-
-
-def clean_urls(entries: Iterable[LogEntry]) -> Iterator[LogEntry]:
-    """Remove the query string from every entry's URL."""
-    return map(clean_url, entries)
 
 
 def to_record(entry: LogEntry) -> LogRecord:

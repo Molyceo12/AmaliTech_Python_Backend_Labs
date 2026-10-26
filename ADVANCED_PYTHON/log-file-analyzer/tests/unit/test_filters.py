@@ -1,5 +1,6 @@
 """Tests for the ``filter()`` predicates and the ``partial()`` filters."""
 
+from datetime import timedelta
 from functools import partial
 
 import pytest
@@ -9,11 +10,12 @@ from log_analyzer.pipeline import (
     by_method,
     by_status,
     by_status_range,
+    in_time_range,
     only_errors,
     select,
     select_all,
 )
-from tests.helpers import SAMPLE_ENTRIES, make_entry
+from tests.helpers import SAMPLE_ENTRIES, TIMESTAMP, make_entry
 
 
 @pytest.mark.parametrize(
@@ -68,3 +70,13 @@ def test_select_all_needs_every_predicate() -> None:
 def test_select_all_without_predicates_keeps_everything() -> None:
     """No predicates means nothing is filtered out."""
     assert list(select_all([], SAMPLE_ENTRIES)) == SAMPLE_ENTRIES
+
+
+def test_in_time_range_includes_start_and_excludes_end() -> None:
+    """``start <= timestamp < end``."""
+    hour = timedelta(hours=1)
+    in_hour = partial(in_time_range, TIMESTAMP, TIMESTAMP + hour)
+    assert in_hour(make_entry(timestamp=TIMESTAMP))
+    assert in_hour(make_entry(timestamp=TIMESTAMP + hour / 2))
+    assert not in_hour(make_entry(timestamp=TIMESTAMP + hour))
+    assert not in_hour(make_entry(timestamp=TIMESTAMP - hour))

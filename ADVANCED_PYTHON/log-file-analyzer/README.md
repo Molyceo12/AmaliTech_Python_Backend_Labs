@@ -328,7 +328,7 @@ COMBINED_LOG = re.compile(_COMMON_FIELDS + _COMBINED_EXTRA + r"$", re.VERBOSE)
 | Pattern | Rule | Used in `parse_line` |
 |---|---|---|
 | IP | each octet `(?:25[0-5]\|2[0-4]\d\|1\d\d\|[1-9]?\d)`: 0–255, no leading zeros; `\b` word boundaries | `is_valid_ip`: a line with an IP like `999.1.1.1` is skipped |
-| Email | `name@` + one or more domain labels + a 2+ letter top-level domain | `mask_emails`: emails in the URL become `***@***` |
+| Email | `name@` + one or more domain labels + a 2+ letter top-level domain | `is_valid_email` inside `mask_emails`: only valid emails in the URL become `***@***` |
 | URL | `http://` or `https://`, host labels or an IPv4 host, optional `:port`, optional path | `is_valid_url`: a referrer that is not an http(s) URL becomes `null`; the line is kept |
 
 The log regex only checks the **shape** of each field (`\d{1,3}` per IP part);
@@ -343,7 +343,7 @@ the validators check that the **value** is real.
 | `fullmatch` | the whole text must be valid | `is_valid_ip`, `is_valid_url` |
 | `search` | first address anywhere in a text | `find_ip`: names the client of each skipped line (`skipped_by_ip`) |
 | `findall` | every address in a text | `find_all_ips`: counts the IPs inside referrer URLs (`referrer_ips`) |
-| `sub` | clean data | `strip_query_string` (`\?.*$`), `mask_emails`, `normalize_whitespace` (`\s+`) |
+| `sub` | clean data | `mask_emails`, `normalize_whitespace` (`\s+`) |
 
 ## Functional pipeline
 
@@ -352,8 +352,7 @@ flowchart LR
     A[log files] -->|"read_many: chain of yield generators"| B[lines]
     B -->|"map(parse_line)"| C["LogEntry | None"]
     C -->|"filter(None, ...)"| D[entries]
-    D -->|"map(clean_url)"| E[clean entries]
-    E -->|"filter(partial predicates)"| F[selected entries]
+    D -->|"filter(partial predicates)"| F[selected entries]
     F -->|"reduce(...)"| G[totals and counts]
     F -->|"groupby / islice"| H[per hour, page]
     G --> I[LogReport JSON]
@@ -363,7 +362,7 @@ flowchart LR
 The same flow as text:
 
 ```
-lines ─ map(parse_line) ─► LogEntry|None ─ filter(None) ─► entries ─ map(clean_url) ─►
+lines ─ map(parse_line) ─► LogEntry|None ─ filter(None) ─► entries ─►
       ─ filter(only_errors / by_method / ...) ─► selected ─ reduce(...) ─► summary ─► JSON
 ```
 
@@ -373,14 +372,14 @@ lines ─ map(parse_line) ─► LogEntry|None ─ filter(None) ─► entries �
 | `filter()` | `pipeline/filters.py` | `select(only_errors, entries)`, `select_all([...], entries)` |
 | `functools.partial()` | `pipeline/filters.py`, `pipeline/aggregations.py` | `only_errors = partial(by_status_range, 400, 599)`, `requests_per_ip = partial(count_by, attrgetter("ip"))` |
 | `functools.reduce()` | `pipeline/aggregations.py` | `total_bytes`, `count_by`, `unique_urls` |
-| `pipe` / `compose` | `pipeline/pipeline.py` | `pipe(lines, parse_entries, clean_urls, partial(select, only_errors), list)` |
+| Chaining | `utils/memory.py` | `count_requests(select(only_errors, parse_entries(read_lines(path))))` |
 
 Design choices:
 
 - Predicates take their **settings first and the entry last**, so `partial`
   can fix the settings and leave a one-argument function for `filter`.
-- `pipe(value, *steps)` is itself a `reduce`: each step receives the result
-  of the previous one, so a pipeline reads left to right.
+- Steps are chained by passing each result straight into the next step,
+  e.g. `count_requests(select(only_errors, parse_entries(lines)))`.
 - Every transform returns a lazy iterator. `summarize` turns the entries
   into a list once, because several aggregations read the same data.
 - `count_by` updates its accumulator in place inside `reduce`, so counting
@@ -396,7 +395,7 @@ Design choices:
 | custom iterator | `readers/batching.Batches` | `__iter__`/`__next__` hand out lists of n items; the service parses 500 lines at a time |
 | `itertools.groupby` | `pipeline/windowing.grouped` | requests per hour, errors per status; sorts first because `groupby` only groups neighbours |
 | `itertools.islice` | `pipeline/windowing.paginate`, `Batches` | one page or batch without building the others |
-| `itertools.takewhile` / `dropwhile` | `pipeline/windowing.until`, `time_window` | stop reading as soon as the time window ends (entries are sorted by time first) |
+| `itertools.takewhile` + `filter()` | `pipeline/windowing.until`, `time_window` | `takewhile` stops reading at `--to`; `filter(in_time_range)` keeps entries inside the window |
 
 ## Decorators
 
@@ -523,7 +522,7 @@ log-file-analyzer/
 │   ├── patterns/               # log formats, validators, re.sub cleaning
 │   ├── parsing/                # LogParser ABC, ApacheLogParser, line → LogEntry
 │   ├── readers/                # LogReader ABC, FileLogReader, generators, Batches
-│   ├── pipeline/               # map transforms, filters, reduce, pipe, itertools
+│   ├── pipeline/               # map transforms, filters, reduce, itertools
 │   ├── decorators/             # @timer, @cache, @log_call
 │   ├── services/               # AnalyzerService, AnalyzerOptions
 │   ├── writers/                # ReportWriter ABC, JsonReportWriter
