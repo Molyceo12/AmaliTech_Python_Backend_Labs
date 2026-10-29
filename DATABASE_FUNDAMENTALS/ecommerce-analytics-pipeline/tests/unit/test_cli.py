@@ -16,17 +16,19 @@ def no_log_file(mocker: MockerFixture) -> None:
     mocker.patch("ecommerce_pipeline.cli.configure_logging")
 
 
-def test_setup_creates_tables_and_closes_the_pool(
+def test_setup_creates_tables_and_indexes_and_closes_the_pool(
     mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """``setup`` creates the tables, closes the pool and exits with 0."""
+    """``setup`` creates tables then indexes, closes the pool, exits with 0."""
     mocker.patch("ecommerce_pipeline.cli.load_settings")
     pool = mocker.patch("ecommerce_pipeline.cli.create_pool").return_value
     create_tables = mocker.patch("ecommerce_pipeline.cli.create_tables")
+    create_indexes = mocker.patch("ecommerce_pipeline.cli.create_indexes")
     assert cli.main(["setup"]) == 0
     create_tables.assert_called_once_with(pool)
+    create_indexes.assert_called_once_with(pool)
     pool.closeall.assert_called_once()
-    assert "Tables created." in capsys.readouterr().out
+    assert "Tables and indexes created." in capsys.readouterr().out
 
 
 def test_expected_error_prints_a_message_and_exits_with_1(

@@ -12,7 +12,7 @@ from ecommerce_pipeline.analytics.reports import product_ranking, revenue_per_cu
 from ecommerce_pipeline.config import load_settings
 from ecommerce_pipeline.db.nosql import create_mongo, create_redis
 from ecommerce_pipeline.db.pool import create_pool
-from ecommerce_pipeline.db.schema import create_tables
+from ecommerce_pipeline.db.schema import create_indexes, create_tables
 from ecommerce_pipeline.db.seed import load_sample_data
 from ecommerce_pipeline.demo import run_demo
 from ecommerce_pipeline.exceptions import EcommerceError
@@ -24,19 +24,20 @@ logger = logging.getLogger(__name__)
 TOP = 10
 
 
-def _with_pool(action: Callable[[ThreadedConnectionPool], None]) -> None:
-    """Open a pool, run ``action`` with it, and always close the pool."""
+def _with_pool(*actions: Callable[[ThreadedConnectionPool], None]) -> None:
+    """Open a pool, run each action with it, and always close the pool."""
     pool = create_pool(load_settings())
     try:
-        action(pool)
+        for action in actions:
+            action(pool)
     finally:
         pool.closeall()
 
 
 def setup() -> None:
-    """Create the tables in PostgreSQL."""
-    _with_pool(create_tables)
-    print("Tables created.")
+    """Create the tables and their indexes in PostgreSQL."""
+    _with_pool(create_tables, create_indexes)
+    print("Tables and indexes created.")
 
 
 def seed() -> None:

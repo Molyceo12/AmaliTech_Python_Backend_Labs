@@ -1,4 +1,4 @@
-"""Run SQL files: create the tables from ``sql/schema.sql``."""
+"""Run SQL files: the tables (``schema.sql``) and their indexes (``indexes.sql``)."""
 
 import logging
 from pathlib import Path
@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 SQL_DIR = Path(__file__).resolve().parents[3] / "sql"
 SCHEMA_FILE = SQL_DIR / "schema.sql"
+INDEXES_FILE = SQL_DIR / "indexes.sql"
 
 
 def run_sql_file(pool: ThreadedConnectionPool, path: Path) -> None:
@@ -24,3 +25,8 @@ def run_sql_file(pool: ThreadedConnectionPool, path: Path) -> None:
 def create_tables(pool: ThreadedConnectionPool) -> None:
     """Create the tables (safe to run again)."""
     run_sql_file(pool, SCHEMA_FILE)
+
+
+def create_indexes(pool: ThreadedConnectionPool) -> None:
+    """Create the B-tree and GIN indexes (safe to run again)."""
+    run_sql_file(pool, INDEXES_FILE)
