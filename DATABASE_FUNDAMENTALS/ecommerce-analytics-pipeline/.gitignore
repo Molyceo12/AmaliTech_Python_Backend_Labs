@@ -1,0 +1,8 @@
+# Local notes and plans
+docs/
+
+# Generated output (log file)
+output/
+
+# Keep the lock file (ignored at the repo root)
+!poetry.lock
