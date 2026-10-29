@@ -1,6 +1,7 @@
 """Product CRUD. ``metadata`` (sizes, colors, ...) is stored as JSONB."""
 
 import logging
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
@@ -17,6 +18,23 @@ INSERT_PRODUCT = """
     VALUES (%s, %s, %s, %s)
     RETURNING product_id
 """
+# @> means "metadata contains this JSON", e.g. {"colors": ["red"]}.
+FIND_BY_METADATA = """
+    SELECT product_id, name, price, metadata
+    FROM products
+    WHERE metadata @> %s
+    ORDER BY product_id
+"""
+
+
+@dataclass(frozen=True)
+class ProductMatch:
+    """A product found by a metadata search."""
+
+    product_id: int
+    name: str
+    price: Decimal
+    metadata: dict[str, Any]
 
 
 def add_product(
@@ -32,3 +50,12 @@ def add_product(
         product_id: int = fetch_value(cursor)
     logger.info("Added product %d", product_id)
     return product_id
+
+
+def find_by_metadata(
+    pool: ThreadedConnectionPool, filters: dict[str, Any]
+) -> list[ProductMatch]:
+    """Return products whose JSONB metadata contains ``filters``."""
+    with get_connection(pool) as conn, conn.cursor() as cursor:
+        cursor.execute(FIND_BY_METADATA, (Json(filters),))
+        return [ProductMatch(*row) for row in cursor.fetchall()]

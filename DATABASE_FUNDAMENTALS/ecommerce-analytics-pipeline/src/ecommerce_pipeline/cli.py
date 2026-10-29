@@ -4,13 +4,16 @@ import argparse
 import logging
 import sys
 from collections.abc import Callable
+from contextlib import ExitStack
 
 from psycopg2.pool import ThreadedConnectionPool
 
 from ecommerce_pipeline.config import load_settings
+from ecommerce_pipeline.db.nosql import create_mongo, create_redis
 from ecommerce_pipeline.db.pool import create_pool
 from ecommerce_pipeline.db.schema import create_tables
 from ecommerce_pipeline.db.seed import load_sample_data
+from ecommerce_pipeline.demo import run_demo
 from ecommerce_pipeline.exceptions import EcommerceError
 from ecommerce_pipeline.logging_config import configure_logging
 
@@ -38,7 +41,25 @@ def seed() -> None:
     print("Sample data loaded.")
 
 
-COMMANDS: dict[str, Callable[[], None]] = {"setup": setup, "seed": seed}
+def demo() -> None:
+    """Show PostgreSQL, JSONB, Redis and MongoDB working together."""
+    settings = load_settings()
+    # ExitStack closes every connection that was opened, even on errors.
+    with ExitStack() as stack:
+        pool = create_pool(settings)
+        stack.callback(pool.closeall)
+        cache = create_redis(settings)
+        stack.callback(cache.close)
+        mongo = create_mongo(settings)
+        stack.callback(mongo.client.close)
+        run_demo(pool, cache, mongo)
+
+
+COMMANDS: dict[str, Callable[[], None]] = {
+    "setup": setup,
+    "seed": seed,
+    "demo": demo,
+}
 
 
 def main(argv: list[str] | None = None) -> int:
