@@ -31,3 +31,7 @@ class DuplicateEmailError(EcommerceError):
 
 class InsufficientStockError(EcommerceError):
     """An order asks for more units than are in stock."""
+
+
+class SessionNotFoundError(EcommerceError):
+    """A cart operation uses a session id that does not exist."""
