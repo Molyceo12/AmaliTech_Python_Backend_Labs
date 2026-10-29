@@ -8,6 +8,7 @@ from contextlib import ExitStack
 
 from psycopg2.pool import ThreadedConnectionPool
 
+from ecommerce_pipeline.analytics.reports import product_ranking, revenue_per_customer
 from ecommerce_pipeline.config import load_settings
 from ecommerce_pipeline.db.nosql import create_mongo, create_redis
 from ecommerce_pipeline.db.pool import create_pool
@@ -18,6 +19,9 @@ from ecommerce_pipeline.exceptions import EcommerceError
 from ecommerce_pipeline.logging_config import configure_logging
 
 logger = logging.getLogger(__name__)
+
+# Reports print this many rows of each table.
+TOP = 10
 
 
 def _with_pool(action: Callable[[ThreadedConnectionPool], None]) -> None:
@@ -55,10 +59,33 @@ def demo() -> None:
         run_demo(pool, cache, mongo)
 
 
+def report() -> None:
+    """Print the top 10 of the product ranking and of revenue per customer."""
+    pool = create_pool(load_settings())
+    try:
+        ranking = product_ranking(pool)[:TOP]
+        revenue = revenue_per_customer(pool)[:TOP]
+    finally:
+        pool.closeall()
+    print("Product ranking (RANK() by units sold)")
+    for product in ranking:
+        print(
+            f"  {product.sales_rank:>3}  {product.name:<20}"
+            f" {product.units_sold:>6} units {product.revenue:>12}"
+        )
+    print("\nRevenue per customer (CTEs)")
+    for customer in revenue:
+        print(
+            f"  {customer.name:<20} {customer.order_count:>4} orders"
+            f" {customer.revenue:>12}"
+        )
+
+
 COMMANDS: dict[str, Callable[[], None]] = {
     "setup": setup,
     "seed": seed,
     "demo": demo,
+    "report": report,
 }
 
 

@@ -1,9 +1,12 @@
 """Tests for the ``ecommerce`` command line."""
 
+from decimal import Decimal
+
 import pytest
 from pytest_mock import MockerFixture
 
 from ecommerce_pipeline import cli
+from ecommerce_pipeline.analytics.reports import CustomerRevenue, ProductRank
 from ecommerce_pipeline.exceptions import DatabaseConnectionError
 
 
@@ -71,3 +74,24 @@ def test_demo_opens_and_closes_every_connection(mocker: MockerFixture) -> None:
     pool.closeall.assert_called_once()
     cache.close.assert_called_once()
     mongo.client.close.assert_called_once()
+
+
+def test_report_prints_both_tables(
+    mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``report`` prints the ranking and the revenue table, then closes the pool."""
+    mocker.patch("ecommerce_pipeline.cli.load_settings")
+    pool = mocker.patch("ecommerce_pipeline.cli.create_pool").return_value
+    mocker.patch(
+        "ecommerce_pipeline.cli.product_ranking",
+        return_value=[ProductRank(1, 4, "Shirt", 12, Decimal("180.00"))],
+    )
+    mocker.patch(
+        "ecommerce_pipeline.cli.revenue_per_customer",
+        return_value=[CustomerRevenue(2, "Kofi", 3, Decimal("276.00"))],
+    )
+    assert cli.main(["report"]) == 0
+    out = capsys.readouterr().out
+    assert "Shirt" in out
+    assert "Kofi" in out
+    pool.closeall.assert_called_once()
