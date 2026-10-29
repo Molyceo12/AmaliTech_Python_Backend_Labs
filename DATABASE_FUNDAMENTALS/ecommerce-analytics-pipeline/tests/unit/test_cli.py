@@ -57,3 +57,17 @@ def test_seed_loads_sample_data_and_closes_the_pool(
     load_sample_data.assert_called_once_with(pool)
     pool.closeall.assert_called_once()
     assert "Sample data loaded." in capsys.readouterr().out
+
+
+def test_demo_opens_and_closes_every_connection(mocker: MockerFixture) -> None:
+    """``demo`` runs with all three stores and closes each one."""
+    mocker.patch("ecommerce_pipeline.cli.load_settings")
+    pool = mocker.patch("ecommerce_pipeline.cli.create_pool").return_value
+    cache = mocker.patch("ecommerce_pipeline.cli.create_redis").return_value
+    mongo = mocker.patch("ecommerce_pipeline.cli.create_mongo").return_value
+    run_demo = mocker.patch("ecommerce_pipeline.cli.run_demo")
+    assert cli.main(["demo"]) == 0
+    run_demo.assert_called_once_with(pool, cache, mongo)
+    pool.closeall.assert_called_once()
+    cache.close.assert_called_once()
+    mongo.client.close.assert_called_once()

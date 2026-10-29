@@ -10,6 +10,7 @@ docker compose up -d
 python -m poetry install
 python -m poetry run ecommerce setup      # create the tables
 python -m poetry run ecommerce seed       # load sql/sample_data.sql (replaces all rows)
+python -m poetry run ecommerce demo       # JSONB search, Mongo cart, order, Redis cache
 ```
 
 ## Usage
@@ -35,6 +36,41 @@ All steps run on one connection inside one transaction:
 4. Commit.
 
 If any step fails (unknown customer or product, not enough stock), the transaction is rolled back: no order, no items, and no stock change. `FOR UPDATE` stops two orders from selling the same last unit, and locking in id order stops two orders from deadlocking.
+
+## SQL and NoSQL
+
+Each store holds the data it fits best. `ecommerce demo` uses all three in one flow: it finds red products with JSONB, puts them in a MongoDB cart, orders the cart in PostgreSQL, and reads the best sellers through Redis.
+
+### Redis: top 10 best sellers
+
+`get_top_products(pool, redis)` in `cache/top_products.py` uses the cache-aside pattern:
+
+1. Read the key `top_products` from Redis. On a **hit**, return it.
+2. On a **miss**, run the SQL (units sold per product, top 10), store the JSON with a **300-second TTL**, and return it.
+
+Why: the query scans every order item, but the answer changes slowly. The TTL means the list is at most 5 minutes old and needs no manual clearing.
+
+### MongoDB: sessions and carts
+
+`sessions/carts.py` keeps one document per user session in the `sessions` collection:
+
+```json
+{"_id": "9f1c...", "customer_id": 1, "cart": {"4": 2, "9": 1}, "updated_at": "2026-10-29T10:00:00Z"}
+```
+
+`add_to_cart` uses `$inc` (adding twice adds up), and `remove_from_cart` uses `$unset`. `get_cart` returns `{product_id: quantity}`, which goes straight into `create_order()`. Product ids are stored as strings because MongoDB keys must be strings.
+
+Why: a cart changes often, is short-lived and has no fixed shape, so it doesn't need rows and transactions in PostgreSQL until it becomes an order.
+
+### PostgreSQL JSONB: product metadata
+
+`find_by_metadata(pool, filters)` in `repositories/products.py` uses the `@>` (contains) operator:
+
+```sql
+SELECT product_id, name, price, metadata FROM products WHERE metadata @> '{"colors": ["red"]}';
+```
+
+`{"category": "shoes", "sizes": ["40"]}` finds shoes that come in size 40. The filter is sent as a parameter, never pasted into the SQL.
 
 ## ER diagram
 
