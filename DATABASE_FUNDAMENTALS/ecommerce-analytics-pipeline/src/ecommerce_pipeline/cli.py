@@ -5,26 +5,40 @@ import logging
 import sys
 from collections.abc import Callable
 
+from psycopg2.pool import ThreadedConnectionPool
+
 from ecommerce_pipeline.config import load_settings
 from ecommerce_pipeline.db.pool import create_pool
 from ecommerce_pipeline.db.schema import create_tables
+from ecommerce_pipeline.db.seed import load_sample_data
 from ecommerce_pipeline.exceptions import EcommerceError
 from ecommerce_pipeline.logging_config import configure_logging
 
 logger = logging.getLogger(__name__)
 
 
-def setup() -> None:
-    """Create the tables in PostgreSQL."""
+def _with_pool(action: Callable[[ThreadedConnectionPool], None]) -> None:
+    """Open a pool, run ``action`` with it, and always close the pool."""
     pool = create_pool(load_settings())
     try:
-        create_tables(pool)
+        action(pool)
     finally:
         pool.closeall()
+
+
+def setup() -> None:
+    """Create the tables in PostgreSQL."""
+    _with_pool(create_tables)
     print("Tables created.")
 
 
-COMMANDS: dict[str, Callable[[], None]] = {"setup": setup}
+def seed() -> None:
+    """Replace all rows with the sample data (run ``setup`` first)."""
+    _with_pool(load_sample_data)
+    print("Sample data loaded.")
+
+
+COMMANDS: dict[str, Callable[[], None]] = {"setup": setup, "seed": seed}
 
 
 def main(argv: list[str] | None = None) -> int:

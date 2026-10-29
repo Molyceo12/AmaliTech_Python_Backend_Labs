@@ -9,7 +9,32 @@ cp .env.example .env
 docker compose up -d
 python -m poetry install
 python -m poetry run ecommerce setup      # create the tables
+python -m poetry run ecommerce seed       # load sql/sample_data.sql (replaces all rows)
 ```
+
+## Usage
+
+CRUD functions live in `src/ecommerce_pipeline/repositories/`:
+
+| Function | What it does |
+|---|---|
+| `add_customer(pool, name, email)` | Inserts a customer; a used email raises `DuplicateEmailError` |
+| `add_product(pool, name, price, stock, metadata)` | Inserts a product; `metadata` is stored as JSONB |
+| `create_order(pool, customer_id, {product_id: quantity})` | Creates an order in one transaction |
+| `get_customer_orders(pool, customer_id)` | Lists a customer's orders with item count and total, newest first |
+
+Every query uses `%s` parameters, so input is never pasted into SQL (no SQL injection).
+
+### How `create_order` stays ACID
+
+All steps run on one connection inside one transaction:
+
+1. Check the customer exists.
+2. Insert the order.
+3. For each product, in id order: lock its row with `SELECT ... FOR UPDATE`, check the stock, insert the item with the current price as `unit_price`, and reduce the stock.
+4. Commit.
+
+If any step fails (unknown customer or product, not enough stock), the transaction is rolled back: no order, no items, and no stock change. `FOR UPDATE` stops two orders from selling the same last unit, and locking in id order stops two orders from deadlocking.
 
 ## ER diagram
 
