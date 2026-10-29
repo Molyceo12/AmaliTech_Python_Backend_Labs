@@ -1,0 +1,65 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.8, pytest-9.2.0, pluggy-1.7.0
+rootdir: C:\Users\PC\Desktop\amalitech\labs\Maurice\Amalitech_Python_Backend_Labs\DATABASE_FUNDAMENTALS\ecommerce-analytics-pipeline
+configfile: pyproject.toml
+testpaths: tests
+plugins: platformdirs-4.14.0, cov-7.1.0, mock-3.17.0
+collected 73 items
+
+tests\integration\test_benchmark.py .                                    [  1%]
+tests\integration\test_carts.py .                                        [  2%]
+tests\integration\test_orders.py ...                                     [  6%]
+tests\integration\test_products.py .                                     [  8%]
+tests\integration\test_reports.py ..                                     [ 10%]
+tests\integration\test_seed.py .                                         [ 12%]
+tests\integration\test_setup.py ..                                       [ 15%]
+tests\integration\test_top_products.py .                                 [ 16%]
+tests\unit\test_benchmark.py ...                                         [ 20%]
+tests\unit\test_carts.py ......                                          [ 28%]
+tests\unit\test_cli.py .......                                           [ 38%]
+tests\unit\test_config.py ......                                         [ 46%]
+tests\unit\test_customers.py ..                                          [ 49%]
+tests\unit\test_demo.py .                                                [ 50%]
+tests\unit\test_logging_config.py ......                                 [ 58%]
+tests\unit\test_nosql.py ....                                            [ 64%]
+tests\unit\test_orders.py .......                                        [ 73%]
+tests\unit\test_pool.py ....                                             [ 79%]
+tests\unit\test_products.py ...                                          [ 83%]
+tests\unit\test_reports.py ...                                           [ 87%]
+tests\unit\test_rows.py ..                                               [ 90%]
+tests\unit\test_schema.py ...                                            [ 94%]
+tests\unit\test_seed.py ..                                               [ 97%]
+tests\unit\test_top_products.py ..                                       [100%]
+
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.14.8-final-0 _______________
+
+Name                                               Stmts   Miss Branch BrPart  Cover   Missing
+----------------------------------------------------------------------------------------------
+src\ecommerce_pipeline\__init__.py                     0      0      0      0   100%
+src\ecommerce_pipeline\analytics\__init__.py           0      0      0      0   100%
+src\ecommerce_pipeline\analytics\benchmark.py         43      0      4      0   100%
+src\ecommerce_pipeline\analytics\reports.py           20      0      0      0   100%
+src\ecommerce_pipeline\cache\__init__.py               0      0      0      0   100%
+src\ecommerce_pipeline\cache\top_products.py          23      0      2      0   100%
+src\ecommerce_pipeline\cli.py                         77      0      8      0   100%
+src\ecommerce_pipeline\config.py                      20      0      6      0   100%
+src\ecommerce_pipeline\db\__init__.py                  0      0      0      0   100%
+src\ecommerce_pipeline\db\nosql.py                    27      0      0      0   100%
+src\ecommerce_pipeline\db\pool.py                     30      0      0      0   100%
+src\ecommerce_pipeline\db\rows.py                      7      0      2      0   100%
+src\ecommerce_pipeline\db\schema.py                   17      0      0      0   100%
+src\ecommerce_pipeline\db\seed.py                      5      0      0      0   100%
+src\ecommerce_pipeline\demo.py                        33      0      8      0   100%
+src\ecommerce_pipeline\exceptions.py                   9      0      0      0   100%
+src\ecommerce_pipeline\logging_config.py              28      0      6      0   100%
+src\ecommerce_pipeline\repositories\__init__.py        0      0      0      0   100%
+src\ecommerce_pipeline\repositories\customers.py      18      0      0      0   100%
+src\ecommerce_pipeline\repositories\orders.py         46      0     10      0   100%
+src\ecommerce_pipeline\repositories\products.py       23      0      0      0   100%
+src\ecommerce_pipeline\sessions\__init__.py            0      0      0      0   100%
+src\ecommerce_pipeline\sessions\carts.py              28      0      6      0   100%
+----------------------------------------------------------------------------------------------
+TOTAL                                                454      0     52      0   100%
+Required test coverage of 90.0% reached. Total coverage: 100.00%
+============================= 73 passed in 10.80s =============================
