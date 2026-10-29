@@ -44,3 +44,16 @@ def test_unknown_command_exits_with_usage_error() -> None:
     with pytest.raises(SystemExit) as exit_info:
         cli.main(["nope"])
     assert exit_info.value.code == 2
+
+
+def test_seed_loads_sample_data_and_closes_the_pool(
+    mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``seed`` loads the sample data, closes the pool and exits with 0."""
+    mocker.patch("ecommerce_pipeline.cli.load_settings")
+    pool = mocker.patch("ecommerce_pipeline.cli.create_pool").return_value
+    load_sample_data = mocker.patch("ecommerce_pipeline.cli.load_sample_data")
+    assert cli.main(["seed"]) == 0
+    load_sample_data.assert_called_once_with(pool)
+    pool.closeall.assert_called_once()
+    assert "Sample data loaded." in capsys.readouterr().out
