@@ -1,9 +1,13 @@
 """Tests for the ``ecommerce`` command line."""
 
+from decimal import Decimal
+
 import pytest
 from pytest_mock import MockerFixture
 
 from ecommerce_pipeline import cli
+from ecommerce_pipeline.analytics.benchmark import BenchmarkResult, Plan
+from ecommerce_pipeline.analytics.reports import CustomerRevenue, ProductRank
 from ecommerce_pipeline.exceptions import DatabaseConnectionError
 
 
@@ -13,17 +17,19 @@ def no_log_file(mocker: MockerFixture) -> None:
     mocker.patch("ecommerce_pipeline.cli.configure_logging")
 
 
-def test_setup_creates_tables_and_closes_the_pool(
+def test_setup_creates_tables_and_indexes_and_closes_the_pool(
     mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """``setup`` creates the tables, closes the pool and exits with 0."""
+    """``setup`` creates tables then indexes, closes the pool, exits with 0."""
     mocker.patch("ecommerce_pipeline.cli.load_settings")
     pool = mocker.patch("ecommerce_pipeline.cli.create_pool").return_value
     create_tables = mocker.patch("ecommerce_pipeline.cli.create_tables")
+    create_indexes = mocker.patch("ecommerce_pipeline.cli.create_indexes")
     assert cli.main(["setup"]) == 0
     create_tables.assert_called_once_with(pool)
+    create_indexes.assert_called_once_with(pool)
     pool.closeall.assert_called_once()
-    assert "Tables created." in capsys.readouterr().out
+    assert "Tables and indexes created." in capsys.readouterr().out
 
 
 def test_expected_error_prints_a_message_and_exits_with_1(
@@ -71,3 +77,44 @@ def test_demo_opens_and_closes_every_connection(mocker: MockerFixture) -> None:
     pool.closeall.assert_called_once()
     cache.close.assert_called_once()
     mongo.client.close.assert_called_once()
+
+
+def test_report_prints_both_tables(
+    mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``report`` prints the ranking and the revenue table, then closes the pool."""
+    mocker.patch("ecommerce_pipeline.cli.load_settings")
+    pool = mocker.patch("ecommerce_pipeline.cli.create_pool").return_value
+    mocker.patch(
+        "ecommerce_pipeline.cli.product_ranking",
+        return_value=[ProductRank(1, 4, "Shirt", 12, Decimal("180.00"))],
+    )
+    mocker.patch(
+        "ecommerce_pipeline.cli.revenue_per_customer",
+        return_value=[CustomerRevenue(2, "Kofi", 3, Decimal("276.00"))],
+    )
+    assert cli.main(["report"]) == 0
+    out = capsys.readouterr().out
+    assert "Shirt" in out
+    assert "Kofi" in out
+    pool.closeall.assert_called_once()
+
+
+def test_benchmark_prints_before_after_and_speedup(
+    mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``benchmark`` prints each query's plans and closes the pool."""
+    mocker.patch("ecommerce_pipeline.cli.load_settings")
+    pool = mocker.patch("ecommerce_pipeline.cli.create_pool").return_value
+    mocker.patch(
+        "ecommerce_pipeline.cli.run_benchmark",
+        return_value=[
+            BenchmarkResult("q", Plan("Seq Scan", 10.0), Plan("Index Scan", 0.5))
+        ],
+    )
+    assert cli.main(["benchmark"]) == 0
+    out = capsys.readouterr().out
+    assert "Seq Scan" in out
+    assert "Index Scan" in out
+    assert "20x faster" in out
+    pool.closeall.assert_called_once()
