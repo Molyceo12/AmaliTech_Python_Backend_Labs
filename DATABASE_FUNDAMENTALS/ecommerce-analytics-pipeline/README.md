@@ -8,9 +8,11 @@ Data pipeline for a fictional e-commerce store: PostgreSQL for customers, produc
 cp .env.example .env
 docker compose up -d
 python -m poetry install
-python -m poetry run ecommerce setup      # create the tables
+python -m poetry run ecommerce setup      # create the tables and indexes
 python -m poetry run ecommerce seed       # load sql/sample_data.sql (replaces all rows)
 python -m poetry run ecommerce demo       # JSONB search, Mongo cart, order, Redis cache
+python -m poetry run ecommerce report     # RANK() product ranking, CTE revenue per customer
+python -m poetry run ecommerce benchmark  # EXPLAIN ANALYZE without and with indexes (replaces the data)
 ```
 
 ## Usage
@@ -71,6 +73,37 @@ SELECT product_id, name, price, metadata FROM products WHERE metadata @> '{"colo
 ```
 
 `{"category": "shoes", "sizes": ["40"]}` finds shoes that come in size 40. The filter is sent as a parameter, never pasted into the SQL.
+
+## Reports
+
+`ecommerce report` runs the two queries in `sql/queries/`:
+
+- **`product_ranking.sql`:** a CTE totals units sold and revenue per product, then `RANK() OVER (ORDER BY units_sold DESC)` ranks them. Ties share a rank and the next rank is skipped (in the sample data, two products sold 4 units: both rank 4, the next ranks 6). Products never sold have 0 units and rank last.
+- **`revenue_per_customer.sql`:** CTE `order_totals` gives one total per order, CTE `customer_revenue` adds them up per customer, then the result is joined to `customers`, highest revenue first.
+
+## Optimization report
+
+`ecommerce benchmark` loads the sample data plus bulk rows from `sql/bulk_data.sql` (20,000 customers, 50,000 products, 200,000 orders), drops the indexes, runs `EXPLAIN (ANALYZE, FORMAT JSON)`, creates the indexes and runs it again. Each time is the fastest of 3 runs.
+
+| Query | Index | Before | After | Faster |
+|---|---|---|---|---|
+| `SELECT ... FROM orders WHERE customer_id = %s` | B-tree `idx_orders_customer_id` | Seq Scan, 11.79 ms | Bitmap Heap Scan, 0.021 ms | ~561× |
+| `SELECT ... FROM products WHERE metadata @> '{"brand": "Brand-42"}'` | GIN `idx_products_metadata` | Seq Scan, 11.57 ms | Bitmap Heap Scan, 0.295 ms | ~39× |
+
+Measured on PostgreSQL 16 in Docker Desktop (Windows), so the exact times differ per machine, but the plans don't.
+
+**What the plans mean**
+
+- **Seq Scan:** PostgreSQL reads every row of the table and throws most away. The cost grows with the table.
+- **Bitmap Heap Scan** (with a Bitmap Index Scan below it): PostgreSQL asks the index which rows match, then reads only those. The cost grows with the number of matches (about 10 orders, about 50 products), not with the table.
+
+**Why these indexes**
+
+- **B-tree on `orders(customer_id)`:** PostgreSQL indexes primary keys on its own, but not foreign keys. `get_customer_orders()` and the revenue CTE look orders up by customer, so without this index every lookup scanned all 200,000 orders. B-tree is the right type for `=` and range lookups.
+- **GIN on `products(metadata)`:** a B-tree can't look inside a JSON document. GIN indexes every key and value in the JSONB, which is exactly what `@>` (contains) needs, so `find_by_metadata()` no longer scans all 50,000 products.
+- **Not indexed:** `products.price`, `orders.created_at` and the other columns. No query here filters on them, and every index slows down `INSERT` and `UPDATE`.
+
+`setup` creates both indexes (`sql/indexes.sql`), so they're always there outside the benchmark. Run `ecommerce seed` after `benchmark` to go back to the small sample data.
 
 ## ER diagram
 

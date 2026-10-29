@@ -8,6 +8,7 @@ from contextlib import ExitStack
 
 from psycopg2.pool import ThreadedConnectionPool
 
+from ecommerce_pipeline.analytics.benchmark import run_benchmark
 from ecommerce_pipeline.analytics.reports import product_ranking, revenue_per_customer
 from ecommerce_pipeline.config import load_settings
 from ecommerce_pipeline.db.nosql import create_mongo, create_redis
@@ -82,11 +83,27 @@ def report() -> None:
         )
 
 
+def benchmark() -> None:
+    """EXPLAIN ANALYZE each query without and with its index (replaces the data)."""
+    pool = create_pool(load_settings())
+    try:
+        results = run_benchmark(pool)
+    finally:
+        pool.closeall()
+    for result in results:
+        print(result.name)
+        print(f"  before: {result.before.node_type:<18} {result.before.ms:>9.3f} ms")
+        print(f"  after:  {result.after.node_type:<18} {result.after.ms:>9.3f} ms")
+        print(f"  {result.speedup:.0f}x faster")
+    print("Run `ecommerce seed` to go back to the small sample data.")
+
+
 COMMANDS: dict[str, Callable[[], None]] = {
     "setup": setup,
     "seed": seed,
     "demo": demo,
     "report": report,
+    "benchmark": benchmark,
 }
 
 

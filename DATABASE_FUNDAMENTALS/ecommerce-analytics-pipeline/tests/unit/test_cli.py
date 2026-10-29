@@ -6,6 +6,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from ecommerce_pipeline import cli
+from ecommerce_pipeline.analytics.benchmark import BenchmarkResult, Plan
 from ecommerce_pipeline.analytics.reports import CustomerRevenue, ProductRank
 from ecommerce_pipeline.exceptions import DatabaseConnectionError
 
@@ -96,4 +97,24 @@ def test_report_prints_both_tables(
     out = capsys.readouterr().out
     assert "Shirt" in out
     assert "Kofi" in out
+    pool.closeall.assert_called_once()
+
+
+def test_benchmark_prints_before_after_and_speedup(
+    mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``benchmark`` prints each query's plans and closes the pool."""
+    mocker.patch("ecommerce_pipeline.cli.load_settings")
+    pool = mocker.patch("ecommerce_pipeline.cli.create_pool").return_value
+    mocker.patch(
+        "ecommerce_pipeline.cli.run_benchmark",
+        return_value=[
+            BenchmarkResult("q", Plan("Seq Scan", 10.0), Plan("Index Scan", 0.5))
+        ],
+    )
+    assert cli.main(["benchmark"]) == 0
+    out = capsys.readouterr().out
+    assert "Seq Scan" in out
+    assert "Index Scan" in out
+    assert "20x faster" in out
     pool.closeall.assert_called_once()
