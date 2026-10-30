@@ -89,15 +89,18 @@ curl -X POST http://localhost:8000/api/urls/ \
      -d '{"original_url": "https://www.djangoproject.com/start/"}'
 ```
 
-Success (`201`): the status code, then the saved short URL.
+Success (`201`): status code, message, and the saved short URL in `detail`.
 
 ```json
 {
   "status_code": 201,
-  "original_url": "https://www.djangoproject.com/start/",
-  "short_code": "M1gmaSk",
-  "short_url": "http://localhost:8000/M1gmaSk/",
-  "created_at": "2026-10-30T12:23:36.052396Z"
+  "message": "Short URL created.",
+  "detail": {
+    "original_url": "https://www.djangoproject.com/start/",
+    "short_code": "M1gmaSk",
+    "short_url": "http://localhost:8000/M1gmaSk/",
+    "created_at": "2026-10-30T12:23:36.052396Z"
+  }
 }
 ```
 
@@ -147,7 +150,7 @@ python -m poetry run python -m pre_commit run --all-files     # ruff, Black, pyl
 | `test_settings.py` | apps installed, `DEBUG` per environment, values from the environment, missing `SECRET_KEY` stops the app, WSGI/ASGI and `manage.py` work |
 | `test_database.py` | SQLite without `DATABASE_URL`, PostgreSQL from a `postgres://` URL |
 | `test_short_codes.py` | code format, saving a URL, a taken code is drawn again |
-| `test_shorten_api.py` | `201` body with `status_code` and the short link, `400` for an invalid or missing URL, `405` error body |
+| `test_shorten_api.py` | `201` body with `status_code`, `message` and the short URL in `detail`, `400` for an invalid or missing URL, `405` error body |
 | `test_redirect.py` | `302` to the original URL, JSON `404` for an unknown code, `admin/` still works |
 | `test_api_docs.py` | schema lists the `201` and `400` responses of `/api/urls/`, Swagger UI loads |
 | `test_exceptions.py` | non-API errors are left to Django |

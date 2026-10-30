@@ -9,20 +9,15 @@ from shortener.serializers import ShortURLSerializer
 
 @pytest.mark.django_db
 def test_valid_url_returns_201_and_a_short_link(client: Client) -> None:
-    """A valid URL is saved; the body has the status code, code and link."""
+    """A valid URL is saved; the body has status code, message and the URL."""
     response = client.post("/api/urls/", {"original_url": "https://example.com/page"})
     assert response.status_code == 201
     body = response.json()
-    assert list(body) == [
-        "status_code",
-        "original_url",
-        "short_code",
-        "short_url",
-        "created_at",
-    ]
-    assert body["status_code"] == 201
-    assert ShortURL.objects.get(short_code=body["short_code"])
-    assert body["short_url"] == f"http://testserver/{body['short_code']}/"
+    assert (body["status_code"], body["message"]) == (201, "Short URL created.")
+    detail = body["detail"]
+    assert list(detail) == ["original_url", "short_code", "short_url", "created_at"]
+    assert ShortURL.objects.get(short_code=detail["short_code"])
+    assert detail["short_url"] == f"http://testserver/{detail['short_code']}/"
 
 
 @pytest.mark.django_db

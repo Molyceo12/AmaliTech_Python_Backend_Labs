@@ -26,12 +26,12 @@ class ShortURLSerializer(serializers.ModelSerializer[ShortURL]):
         return str(request.build_absolute_uri(path)) if request else path
 
 
-class ShortURLCreatedSerializer(ShortURLSerializer):
-    """The success body: the short URL plus its status code."""
+# Only describes the success body for Swagger; it never saves anything.
+class ShortURLCreatedSerializer(
+    serializers.Serializer[Any]
+):  # pylint: disable=abstract-method
+    """The success body: status code, message and the short URL as ``detail``."""
 
-    status_code = serializers.IntegerField(read_only=True)
-
-    class Meta(ShortURLSerializer.Meta):
-        """``status_code`` first, like in the error body."""
-
-        fields = ["status_code", *ShortURLSerializer.Meta.fields]
+    status_code = serializers.IntegerField()
+    message = serializers.CharField()
+    detail = ShortURLSerializer()

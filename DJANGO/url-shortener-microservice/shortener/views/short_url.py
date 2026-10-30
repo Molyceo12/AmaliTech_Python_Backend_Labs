@@ -19,9 +19,13 @@ class ShortURLCreateView(generics.CreateAPIView):  # type: ignore[type-arg]
 
     @extend_schema(responses={201: ShortURLCreatedSerializer, 400: ErrorSerializer})
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        """Return the new short URL with ``status_code`` first, like errors do."""
+        """Wrap the new short URL as ``{status_code, message, detail}``."""
         response = super().post(request, *args, **kwargs)
-        response.data = {"status_code": response.status_code, **response.data}
+        response.data = {
+            "status_code": response.status_code,
+            "message": "Short URL created.",
+            "detail": response.data,
+        }
         return response
 
     def perform_create(self, serializer: ShortURLSerializer) -> None:  # type: ignore[override]
