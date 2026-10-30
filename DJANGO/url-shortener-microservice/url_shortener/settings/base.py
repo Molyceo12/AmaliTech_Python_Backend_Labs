@@ -6,6 +6,7 @@ file (see ``.env.example``), never from the code.
 
 from pathlib import Path
 
+import dj_database_url
 from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -56,12 +57,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "url_shortener.wsgi.application"
 
-# SQLite until PostgreSQL arrives with Docker (branch 2).
+# One URL holds every database setting: Docker sets a postgres:// URL,
+# without one the app uses a local SQLite file.
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": config(
+        "DATABASE_URL",
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        cast=dj_database_url.parse,
+    )
 }
 
 AUTH_PASSWORD_VALIDATORS = [

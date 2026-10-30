@@ -2,23 +2,12 @@
 
 import importlib
 import sys
-from collections.abc import Iterator
 from types import ModuleType
 
 import decouple
 import pytest
 from django.conf import settings
 from django.test import Client
-
-from url_shortener.settings import base
-
-
-@pytest.fixture(name="reload_base")
-def fixture_reload_base(monkeypatch: pytest.MonkeyPatch) -> Iterator[ModuleType]:
-    """Give ``base``; afterwards undo the fake environment and reload it."""
-    yield base
-    monkeypatch.undo()
-    importlib.reload(base)
 
 
 def test_apps_are_installed() -> None:
