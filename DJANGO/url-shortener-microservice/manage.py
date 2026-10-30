@@ -7,7 +7,7 @@ import sys
 
 def main() -> None:
     """Run an administrative task, e.g. ``python manage.py runserver``."""
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "url_shortener.settings")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "url_shortener.settings.dev")
     from django.core.management import (  # pylint: disable=import-outside-toplevel
         execute_from_command_line,
     )
