@@ -24,3 +24,14 @@ class ShortURLSerializer(serializers.ModelSerializer[ShortURL]):
         path = f"/{obj.short_code}/"
         request: Any = self.context.get("request")
         return str(request.build_absolute_uri(path)) if request else path
+
+
+class ShortURLCreatedSerializer(ShortURLSerializer):
+    """The success body: the short URL plus its status code."""
+
+    status_code = serializers.IntegerField(read_only=True)
+
+    class Meta(ShortURLSerializer.Meta):
+        """``status_code`` first, like in the error body."""
+
+        fields = ["status_code", *ShortURLSerializer.Meta.fields]

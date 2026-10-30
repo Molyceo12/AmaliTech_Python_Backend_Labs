@@ -19,8 +19,10 @@ def test_known_code_redirects_to_the_original_url(client: Client) -> None:
 
 @pytest.mark.django_db
 def test_unknown_code_returns_404(client: Client) -> None:
-    """A code that was never saved is not found."""
-    assert client.get("/nothing1/").status_code == 404
+    """A code that was never saved gets the JSON error."""
+    response = client.get("/nothing1/")
+    assert response.status_code == 404
+    assert response.json() == {"status_code": 404, "detail": "Short code not found."}
 
 
 @pytest.mark.django_db

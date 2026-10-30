@@ -7,7 +7,8 @@ def test_schema_lists_the_shorten_endpoint(client: Client) -> None:
     """The OpenAPI schema documents ``POST /api/urls/``."""
     response = client.get("/api/schema/", {"format": "json"})
     assert response.status_code == 200
-    assert "post" in response.json()["paths"]["/api/urls/"]
+    responses = response.json()["paths"]["/api/urls/"]["post"]["responses"]
+    assert set(responses) == {"201", "400"}
 
 
 def test_swagger_ui_loads(client: Client) -> None:
