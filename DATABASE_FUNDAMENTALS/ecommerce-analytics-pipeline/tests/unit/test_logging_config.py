@@ -53,6 +53,18 @@ def test_calling_again_does_not_log_twice(tmp_path: Path) -> None:
     assert [line.rsplit(": ", 1)[1] for line in lines] == ["first run", "second run"]
 
 
+def test_other_handlers_are_kept(tmp_path: Path) -> None:
+    """Only the handlers this module added are replaced."""
+    logger = logging.getLogger(PACKAGE_LOGGER)
+    other = logging.NullHandler()
+    logger.addHandler(other)
+    try:
+        configure_logging(tmp_path / "run.log")
+        assert other in logger.handlers
+    finally:
+        logger.removeHandler(other)
+
+
 def test_unwritable_log_file_raises(tmp_path: Path) -> None:
     """A path whose folder cannot be created gives ``LogSetupError``."""
     blocker = tmp_path / "taken"
