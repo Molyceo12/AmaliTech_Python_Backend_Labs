@@ -23,7 +23,10 @@ dev = [
     "django-stubs (>=5.2,<5.3)",
     "djangorestframework-stubs (>=3.16,<3.17)",
     "pre-commit (>=4.7.0,<5.0.0)",
-    "pre-commit-hooks (>=6.0.0,<7.0.0)"
+    "pre-commit-hooks (>=6.0.0,<7.0.0)",
+    "pytest (>=9.2.0,<10.0.0)",
+    "pytest-django (>=4.14.0,<5.0.0)",
+    "pytest-cov (>=7.1.0,<8.0.0)"
 ]
 
 [tool.black]
@@ -48,6 +51,10 @@ django-settings-module = "url_shortener.settings.dev"
 init-hook = "import sys; sys.path[:0] = ['.', 'DJANGO/url-shortener-microservice']"
 ignore = ["migrations"]
 
+[tool.pylint."messages control"]
+# Ruff (rule "I") sorts imports; pylint guesses the groups wrongly from the repo root.
+disable = ["wrong-import-order"]
+
 [tool.pylint.basic]
 no-docstring-rgx = "^(_|test_)"
 
@@ -67,3 +74,18 @@ django_settings_module = "url_shortener.settings.dev"
 [[tool.mypy.overrides]]
 module = ["decouple"]
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "url_shortener.settings.dev"
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.coverage.run]
+source = ["."]
+omit = [".venv/*", "tests/*", "*/migrations/*"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 90
+exclude_also = ['if __name__ == .__main__.:']
