@@ -13,9 +13,10 @@ back to the original URL.
 
 1. [Setup](#setup)
 2. [Docker](#docker)
-3. [Settings](#settings)
-4. [Testing](#testing)
-5. [Project structure](#project-structure)
+3. [API](#api)
+4. [Settings](#settings)
+5. [Testing](#testing)
+6. [Project structure](#project-structure)
 
 ## Setup
 
@@ -34,7 +35,7 @@ python -m poetry run python manage.py migrate
 python -m poetry run python manage.py runserver
 ```
 
-Then open http://localhost:8000/admin/.
+Then open the Swagger UI at http://localhost:8000/api/docs/.
 
 Without Poetry (`requirements.txt` is the pinned list exported from Poetry):
 
@@ -69,8 +70,37 @@ Then open http://localhost:8000/admin/.
 The `Dockerfile` has two stages: `builder` installs the main dependencies
 with Poetry into `/opt/venv`, and `runtime` copies only `/opt/venv` and the
 code into a `python:3.12-slim` image that runs as a non-root user. Dev tools
-(pytest, mypy, Black, Poetry) are not in the image. The admin page has no
+(pytest, mypy, Black, Poetry) are not in the image. The API answers on the
+same port, e.g. http://localhost:8000/api/docs/. The admin page has no
 styling in Docker (`DEBUG = False`, no static file server yet).
+
+## API
+
+| Method | Route | What it does |
+|---|---|---|
+| `POST` | `/api/urls/` | saves a long URL under a new short code (`201`; invalid URL → `400`) |
+| `GET` | `/<short_code>/` | redirects (`302`) to the original URL (unknown code → `404`) |
+| `GET` | `/api/docs/` | Swagger UI ([drf-spectacular](https://drf-spectacular.readthedocs.io/)) |
+| `GET` | `/api/schema/` | OpenAPI schema |
+
+```bash
+curl -X POST http://localhost:8000/api/urls/ \
+     -H "Content-Type: application/json" \
+     -d '{"original_url": "https://www.djangoproject.com/start/"}'
+```
+
+```json
+{
+  "original_url": "https://www.djangoproject.com/start/",
+  "short_code": "M1gmaSk",
+  "short_url": "http://localhost:8000/M1gmaSk/",
+  "created_at": "2026-10-30T12:23:36.052396Z"
+}
+```
+
+Opening `short_url` sends the browser to the original URL. Codes are 7 random
+letters and digits (`secrets`); a code already in use is drawn again. The
+redirect is temporary (`302`) so later clicks still reach the service.
 
 ## Settings
 
@@ -100,11 +130,16 @@ python -m poetry run python -m pytest --cov                   # tests + coverage
 python -m poetry run python -m pre_commit run --all-files     # ruff, Black, pylint, mypy
 ```
 
-`tests/test_settings.py` checks that the apps are installed, `dev` and `prod`
-set `DEBUG`, values come from the environment, a missing `SECRET_KEY` stops
-the app, the WSGI/ASGI entry points and `manage.py` work, and the admin page
-loads. `tests/test_database.py` checks SQLite without `DATABASE_URL` and
-PostgreSQL from a `postgres://` URL. Coverage: 100 %.
+| File | Checks |
+|---|---|
+| `test_settings.py` | apps installed, `DEBUG` per environment, values from the environment, missing `SECRET_KEY` stops the app, WSGI/ASGI and `manage.py` work |
+| `test_database.py` | SQLite without `DATABASE_URL`, PostgreSQL from a `postgres://` URL |
+| `test_short_codes.py` | code format, saving a URL, a taken code is drawn again |
+| `test_shorten_api.py` | `201` with the short link, `400` for an invalid or missing URL |
+| `test_redirect.py` | `302` to the original URL, `404` for an unknown code, `admin/` still works |
+| `test_api_docs.py` | schema lists `/api/urls/`, Swagger UI loads |
+
+Coverage: 100 %.
 
 Code style: every function has type hints (mypy strict with the Django and
 DRF stubs) and every module, class and function has a docstring.
@@ -115,14 +150,16 @@ DRF stubs) and every module, class and function has a docstring.
 url-shortener-microservice/
 ├── url_shortener/              # Django project
 │   ├── settings/               # base.py, dev.py, prod.py
-│   ├── urls.py                 # root routes
+│   ├── urls.py                 # admin, API docs, shortener routes
 │   ├── wsgi.py                 # WSGI entry point (Gunicorn)
 │   └── asgi.py                 # ASGI entry point
 ├── shortener/                  # app: short URLs
-│   ├── models/                 # database models
-│   ├── serializers/            # request validation
-│   ├── services/               # business logic
-│   └── views/                  # API and redirect views
+│   ├── models/                 # ShortURL
+│   ├── serializers/            # validates original_url, returns short_url
+│   ├── services/               # short code creation
+│   ├── views/                  # POST /api/urls/, GET /<short_code>/
+│   ├── migrations/
+│   └── urls.py                 # the app's routes
 ├── accounts/                   # app: users
 │   └── models/
 ├── tests/
