@@ -12,13 +12,13 @@ repos:
         entry: ADVANCED_PYTHON\\log-file-analyzer\\.venv\\Scripts\\python.exe -m pre_commit_hooks.trailing_whitespace_fixer
         language: system
         types: [text]
-        files: ^(ADVANCED_PYTHON/(student-grade-analytics|log-file-analyzer)|DATABASE_FUNDAMENTALS/ecommerce-analytics-pipeline)/
+        files: ^(ADVANCED_PYTHON/(student-grade-analytics|log-file-analyzer)|DATABASE_FUNDAMENTALS/ecommerce-analytics-pipeline|DJANGO/url-shortener-microservice)/
       - id: end-of-file-fixer
         name: fix end of files
         entry: ADVANCED_PYTHON\\log-file-analyzer\\.venv\\Scripts\\python.exe -m pre_commit_hooks.end_of_file_fixer
         language: system
         types: [text]
-        files: ^(ADVANCED_PYTHON/(student-grade-analytics|log-file-analyzer)|DATABASE_FUNDAMENTALS/ecommerce-analytics-pipeline)/
+        files: ^(ADVANCED_PYTHON/(student-grade-analytics|log-file-analyzer)|DATABASE_FUNDAMENTALS/ecommerce-analytics-pipeline|DJANGO/url-shortener-microservice)/
       - id: check-yaml
         name: check yaml
         entry: ADVANCED_PYTHON\\log-file-analyzer\\.venv\\Scripts\\python.exe -m pre_commit_hooks.check_yaml
@@ -35,7 +35,7 @@ repos:
     hooks:
       - id: ruff-check
         args: [--fix]
-        files: ^(ADVANCED_PYTHON/(student-grade-analytics|log-file-analyzer)|DATABASE_FUNDAMENTALS/ecommerce-analytics-pipeline)/
+        files: ^(ADVANCED_PYTHON/(student-grade-analytics|log-file-analyzer)|DATABASE_FUNDAMENTALS/ecommerce-analytics-pipeline|DJANGO/url-shortener-microservice)/
 
   # Black, pylint and mypy run with the lab's .venv python (python -m poetry install):
   # pre-commit's separate environments for them are blocked by Windows
@@ -107,3 +107,28 @@ repos:
         language: system
         types: [python]
         files: ^DATABASE_FUNDAMENTALS/ecommerce-analytics-pipeline/(src|tests)/
+
+  # URL shortener: same three hooks, run with that lab's own .venv and config
+  # (pylint-django and the Django/DRF stubs need the lab's packages).
+  - repo: local
+    hooks:
+      - id: black-url-shortener
+        name: black (url shortener)
+        entry: DJANGO\\url-shortener-microservice\\.venv\\Scripts\\python.exe -m black
+        language: system
+        types: [python]
+        files: ^DJANGO/url-shortener-microservice/
+      - id: pylint-url-shortener
+        name: pylint (url shortener)
+        entry: DJANGO\\url-shortener-microservice\\.venv\\Scripts\\python.exe -m pylint --rcfile=DJANGO/url-shortener-microservice/pyproject.toml
+        language: system
+        types: [python]
+        files: ^DJANGO/url-shortener-microservice/
+        exclude: /migrations/
+      - id: mypy-url-shortener
+        name: mypy (url shortener)
+        entry: DJANGO\\url-shortener-microservice\\.venv\\Scripts\\python.exe -m mypy --config-file=DJANGO/url-shortener-microservice/pyproject.toml
+        language: system
+        types: [python]
+        files: ^DJANGO/url-shortener-microservice/
+        exclude: /migrations/
