@@ -2,8 +2,9 @@
 
 from django.urls import path
 
-from shortener.views import ShortURLCreateView
+from shortener.views import ShortURLDetailView, ShortURLListCreateView
 
 urlpatterns = [
-    path("urls/", ShortURLCreateView.as_view(), name="url-create"),
+    path("urls/", ShortURLListCreateView.as_view(), name="url-list"),
+    path("urls/<str:short_code>/", ShortURLDetailView.as_view(), name="url-detail"),
 ]

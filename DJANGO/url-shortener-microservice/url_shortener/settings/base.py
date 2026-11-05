@@ -105,6 +105,9 @@ REST_FRAMEWORK = {
     # JSON only, every response as {"status_code", "message", "detail"}.
     "DEFAULT_RENDERER_CLASSES": ["url_shortener.renderers.EnvelopeJSONRenderer"],
     "EXCEPTION_HANDLER": "url_shortener.exceptions.json_exception_handler",
+    # Lists come in pages: {"count", "next", "previous", "results"}.
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "URL Shortener API",
