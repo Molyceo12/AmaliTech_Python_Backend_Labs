@@ -1,17 +1,24 @@
 """``GET /<short_code>/``: send the visitor to the original URL."""
 
 from django.http import HttpResponseRedirect
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 
 from shortener.models import ShortURL
+from url_shortener.exceptions import ErrorSerializer
 
 
 # A DRF view so a wrong code gets the same JSON error as the API.
-# Left out of Swagger: a browser follows the redirect, Swagger cannot.
-@extend_schema(exclude=True)
+# Swagger documents it, but only a browser follows the redirect.
+@extend_schema(
+    responses={
+        302: OpenApiResponse(description="Redirect to the original URL."),
+        404: ErrorSerializer,
+        500: ErrorSerializer,
+    }
+)
 @api_view(["GET"])
 def redirect_to_original(request: Request, short_code: str) -> HttpResponseRedirect:
     """302 to the saved URL (temporary, so later clicks still reach us).

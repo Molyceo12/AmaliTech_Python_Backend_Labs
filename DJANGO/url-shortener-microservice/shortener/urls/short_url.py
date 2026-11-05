@@ -1,10 +1,8 @@
-"""Routes of the shortener app: the API and the redirect."""
+"""Short URL routes: create a code, and redirect a code to its URL."""
 
 from django.urls import path
 
 from shortener.views import ShortURLCreateView, redirect_to_original
-
-app_name = "shortener"
 
 urlpatterns = [
     path("api/urls/", ShortURLCreateView.as_view(), name="create"),
