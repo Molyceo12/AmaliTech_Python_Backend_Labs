@@ -16,8 +16,9 @@ from ecommerce_pipeline.db.pool import create_pool
 from ecommerce_pipeline.db.schema import create_indexes, create_tables
 from ecommerce_pipeline.db.seed import load_sample_data
 from ecommerce_pipeline.demo import run_demo
+from ecommerce_pipeline.display import print_table
 from ecommerce_pipeline.exceptions import EcommerceError
-from ecommerce_pipeline.logging_config import configure_logging
+from ecommerce_pipeline.logging_config import FILE_ONLY, configure_logging
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +39,13 @@ def _with_pool(*actions: Callable[[ThreadedConnectionPool], None]) -> None:
 def setup() -> None:
     """Create the tables and their indexes in PostgreSQL."""
     _with_pool(create_tables, create_indexes)
-    print("Tables and indexes created.")
+    print_table("ecommerce setup", ["result"], [["Tables and indexes created."]])
 
 
 def seed() -> None:
     """Replace all rows with the sample data (run ``setup`` first)."""
     _with_pool(load_sample_data)
-    print("Sample data loaded.")
+    print_table("ecommerce seed", ["result"], [["Sample data loaded."]])
 
 
 def demo() -> None:
@@ -69,18 +70,16 @@ def report() -> None:
         revenue = revenue_per_customer(pool)[:TOP]
     finally:
         pool.closeall()
-    print("Product ranking (RANK() by units sold)")
-    for product in ranking:
-        print(
-            f"  {product.sales_rank:>3}  {product.name:<20}"
-            f" {product.units_sold:>6} units {product.revenue:>12}"
-        )
-    print("\nRevenue per customer (CTEs)")
-    for customer in revenue:
-        print(
-            f"  {customer.name:<20} {customer.order_count:>4} orders"
-            f" {customer.revenue:>12}"
-        )
+    print_table(
+        "Product ranking (RANK() by units sold)",
+        ["rank", "product", "units", "revenue"],
+        [[p.sales_rank, p.name, p.units_sold, p.revenue] for p in ranking],
+    )
+    print_table(
+        "\nRevenue per customer (CTEs)",
+        ["customer", "orders", "revenue"],
+        [[c.name, c.order_count, c.revenue] for c in revenue],
+    )
 
 
 def benchmark() -> None:
@@ -90,12 +89,26 @@ def benchmark() -> None:
         results = run_benchmark(pool)
     finally:
         pool.closeall()
-    for result in results:
-        print(result.name)
-        print(f"  before: {result.before.node_type:<18} {result.before.ms:>9.3f} ms")
-        print(f"  after:  {result.after.node_type:<18} {result.after.ms:>9.3f} ms")
-        print(f"  {result.speedup:.0f}x faster")
-    print("Run `ecommerce seed` to go back to the small sample data.")
+    print_table(
+        "EXPLAIN ANALYZE without and with the index",
+        ["query", "before", "ms", "after", "ms", "speedup"],
+        [
+            [
+                r.name,
+                r.before.node_type,
+                round(r.before.ms, 3),
+                r.after.node_type,
+                round(r.after.ms, 3),
+                f"{r.speedup:.0f}x faster",
+            ]
+            for r in results
+        ],
+    )
+    print_table(
+        "\nNext step",
+        ["note"],
+        [["Run `ecommerce seed` to go back to the small sample data."]],
+    )
 
 
 COMMANDS: dict[str, Callable[[], None]] = {
@@ -119,8 +132,17 @@ def main(argv: list[str] | None = None) -> int:
         configure_logging(verbose=args.verbose)
         COMMANDS[args.command]()
     except EcommerceError as error:
-        logger.debug("Command %s failed", args.command, exc_info=True)
-        print(f"Error: {error}", file=sys.stderr)
+        # ERROR with the traceback in the log file; the terminal gets the table.
+        logger.error(
+            "Command %s failed: %s",
+            args.command,
+            error,
+            exc_info=True,
+            extra={FILE_ONLY: True},
+        )
+        print_table(
+            "Error", ["command", "message"], [[args.command, error]], file=sys.stderr
+        )
         return 1
     return 0
 

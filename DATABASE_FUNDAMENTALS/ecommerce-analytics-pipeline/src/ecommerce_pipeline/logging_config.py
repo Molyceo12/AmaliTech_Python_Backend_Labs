@@ -14,6 +14,8 @@ PACKAGE_LOGGER = "ecommerce_pipeline"
 DEFAULT_LOG_FILE = Path("output/ecommerce.log")
 LOG_FORMAT = "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
 _OURS = "_ecommerce_handler"  # marks the handlers this module added
+# Log with extra={FILE_ONLY: True} to keep a message out of the terminal.
+FILE_ONLY = "file_only"
 
 
 def configure_logging(
@@ -45,6 +47,7 @@ def configure_logging(
 
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(logging.DEBUG if verbose else logging.WARNING)
+    console_handler.addFilter(lambda record: not getattr(record, FILE_ONLY, False))
     for handler in (file_handler, console_handler):
         handler.setFormatter(logging.Formatter(LOG_FORMAT))
         setattr(handler, _OURS, True)

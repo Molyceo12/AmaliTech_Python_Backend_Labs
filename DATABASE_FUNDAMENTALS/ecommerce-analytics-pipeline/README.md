@@ -45,7 +45,7 @@ CTEs, and indexes are measured with `EXPLAIN ANALYZE`.
 - `RANK()` product ranking and CTE revenue per customer
 - `EXPLAIN ANALYZE` benchmark on 200,000 orders: B-tree ~561× and GIN ~39× faster
 - Docker Compose for PostgreSQL 16, Redis 7 and MongoDB 7
-- Its own log file (`output/ecommerce.log`)
+- Its own log file (`output/ecommerce.log`); a failed command is logged there as `ERROR` with the full traceback
 - 73 tests, 100 % line and branch coverage, mypy strict, pre-commit hooks
 
 ## Setup
@@ -144,11 +144,11 @@ afterwards to go back to the sample data.
 python -m poetry run ecommerce benchmark
 ```
 
-**6. Service down:** Redis on a wrong port gives a one-line error and exit code `1`.
+**6. Service down:** Redis on a wrong port prints an `Error` table (on stderr) and exits with code `1`.
 
 ```bash
 REDIS_URL=redis://localhost:6390/0 python -m poetry run ecommerce demo
-# Error: Cannot connect to Redis: Error 10061 connecting to localhost:6390. ...
+# Error table: demo | Cannot connect to Redis: Error 10061 connecting to localhost:6390. ...
 ```
 
 **7. Unknown command:** `argparse` lists the valid commands, exit code `2`.
@@ -159,56 +159,82 @@ python -m poetry run ecommerce nope
 
 ## Sample output
 
+Every command (`setup`, `seed`, `demo`, `report`, `benchmark`, and errors on stderr) prints its output as tables framed with `:` lines, all 100 characters wide; long text wraps onto the next line (`src/ecommerce_pipeline/display.py`).
+
 `ecommerce demo` (after `seed`):
 
 ```
 1. JSONB: products with metadata @> {'colors': ['red']}
-     1  Cotton T-Shirt          15.00
-     5  Running Shoes           80.00
-     9  Bluetooth Speaker       55.00
-    12  Throw Pillow            18.00
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                       id : product                                 :                       price :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                        1 : Cotton T-Shirt                          :                       15.00 :
+:                        5 : Running Shoes                           :                       80.00 :
+:                        9 : Bluetooth Speaker                       :                       55.00 :
+:                       12 : Throw Pillow                            :                       18.00 :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-2. MongoDB: cart for customer 1
-   session 61f9a3113b99478c80cb6417004ee498: {1: 1, 5: 1}
+2. MongoDB: cart of customer 1 (session a02964366b1d4c34ba33321691b1daa4)
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                       product id :                                      quantity :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                                                1 :                                             1 :
+:                                                5 :                                             1 :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-3. PostgreSQL: order the cart in one transaction
-   created order 21
-   order 21: 2 items, 95.00
-   order 14: 4 items, 93.50
-   order 4: 1 items, 60.00
-   order 1: 3 items, 38.00
+3. PostgreSQL: cart ordered in one transaction (order 21)
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:               order : created                        :               items :               total :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                  21 : 2026-11-01 20:48               :                   2 :               95.00 :
+:                  14 : 2026-04-03 00:00               :                   4 :               93.50 :
+:                   4 : 2026-03-08 00:00               :                   1 :               60.00 :
+:                   1 : 2026-03-02 00:00               :                   3 :               38.00 :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-4. Redis: top 10 best sellers, asked twice
-   from database: Cotton T-Shirt, Notebook, Ceramic Mug, ...
-   from cache: Cotton T-Shirt, Notebook, Ceramic Mug, ...
+4. Redis: top 10 best-selling products, asked twice
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:             call : from                 : top products                                           :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                1 : database             : Cotton T-Shirt, Notebook, Ceramic Mug, ...             :
+:                2 : cache                : Cotton T-Shirt, Notebook, Ceramic Mug, ...             :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ```
 
-`ecommerce report` (after `seed`):
+`ecommerce report` (after `seed` and one `demo`):
 
 ```
 Product ranking (RANK() by units sold)
-    1  Cotton T-Shirt           12 units       180.00
-    2  Notebook                  8 units        36.00
-    3  Ceramic Mug               7 units        56.00
-    4  Wireless Earbuds          4 units       240.00
-    4  Phone Charger             4 units        50.00
-    6  Hoodie                    3 units       105.00
-    6  Kente Scarf               3 units        75.00
-    6  Throw Pillow              3 units        54.00
-    9  Denim Jeans               2 units        90.00
-    9  Running Shoes             2 units       160.00
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:               rank : product                        :               units :              revenue :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:                  1 : Cotton T-Shirt                 :                  13 :               195.00 :
+:                  2 : Notebook                       :                   8 :                36.00 :
+:                  3 : Ceramic Mug                    :                   7 :                56.00 :
+:                  4 : Wireless Earbuds               :                   4 :               240.00 :
+:                  4 : Phone Charger                  :                   4 :                50.00 :
+:                  6 : Hoodie                         :                   3 :               105.00 :
+:                  6 : Kente Scarf                    :                   3 :                75.00 :
+:                  6 : Running Shoes                  :                   3 :               240.00 :
+:                  6 : Throw Pillow                   :                   3 :                54.00 :
+:                 10 : Denim Jeans                    :                   2 :                90.00 :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 Revenue per customer (CTEs)
-  Ama Mensah              4 orders       286.50
-  Kofi Boateng            3 orders       276.00
-  Kwame Asante            2 orders       185.50
-  Akosua Addo             2 orders       173.00
-  Abena Darko             2 orders       165.00
-  Esi Owusu               2 orders       130.00
-  Kojo Antwi              1 orders       120.00
-  Kwesi Appiah            1 orders       105.00
-  Adwoa Amoah             2 orders       103.00
-  Yaw Ofori               2 orders        93.00
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+: customer                           :                       orders :                      revenue :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+: Ama Mensah                         :                            4 :                       286.50 :
+: Kofi Boateng                       :                            3 :                       276.00 :
+: Kwame Asante                       :                            2 :                       185.50 :
+: Akosua Addo                        :                            2 :                       173.00 :
+: Abena Darko                        :                            2 :                       165.00 :
+: Esi Owusu                          :                            2 :                       130.00 :
+: Kojo Antwi                         :                            1 :                       120.00 :
+: Kwesi Appiah                       :                            1 :                       105.00 :
+: Adwoa Amoah                        :                            2 :                       103.00 :
+: Yaw Ofori                          :                            2 :                        93.00 :
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ```
 
 ## ER diagram
@@ -368,6 +394,7 @@ ecommerce-analytics-pipeline/
 │   ├── exceptions.py           # EcommerceError and subclasses
 │   ├── logging_config.py       # the pipeline's own log: file + terminal
 │   ├── demo.py                 # PostgreSQL, JSONB, MongoDB and Redis in one flow
+│   ├── display.py              # prints rows as ':' tables
 │   ├── db/                     # pool, Redis/Mongo clients, schema and seed runners
 │   ├── repositories/           # customers, products (JSONB), orders (ACID)
 │   ├── cache/                  # Redis top 10 best sellers
