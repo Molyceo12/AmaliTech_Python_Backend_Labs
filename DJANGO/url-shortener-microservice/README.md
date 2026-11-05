@@ -65,6 +65,30 @@ python -m poetry run python -m pre_commit run --all-files   # pre-commit hooks: 
 
 Swagger UI: http://localhost:8000/api/docs/
 
+## Users
+
+`accounts.User` (`AUTH_USER_MODEL`) extends Django's `AbstractUser`:
+
+| Field | Rule |
+|---|---|
+| `email` | unique, required, saved lowercase; used to log in |
+| `tier` | `free` (default), `premium` or `admin` |
+| `is_premium` | set from `tier` on save (`premium` → True) |
+
+`tier = admin` gives no admin rights: `is_staff` / `is_superuser` still decide that.
+
+```bash
+python -m poetry run python manage.py createsuperuser   # asks for email, username, password
+```
+
+Coming from Module 5? The user model changed, so start the dev databases fresh
+once (lab data is lost):
+
+```bash
+rm db.sqlite3                  # SQLite
+docker compose down -v         # Docker PostgreSQL volume
+```
+
 ## API endpoints
 
 | Method | Route | What it does |
