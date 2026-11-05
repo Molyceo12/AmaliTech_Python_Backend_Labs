@@ -15,7 +15,7 @@ def test_valid_url_returns_201_and_a_short_link(client: Client) -> None:
     body = response.json()
     assert (body["status_code"], body["message"]) == (201, "Short URL created.")
     detail = body["detail"]
-    assert list(detail) == ["original_url", "short_code", "short_url", "created_at"]
+    assert (detail["tags"], detail["owner"], detail["is_active"]) == ([], None, True)
     assert ShortURL.objects.get(short_code=detail["short_code"])
     assert detail["short_url"] == f"http://testserver/{detail['short_code']}/"
 
@@ -43,15 +43,18 @@ def test_invalid_or_missing_url_returns_400(
 
 def test_wrong_method_returns_the_json_error(client: Client) -> None:
     """Errors without a field keep DRF's message under ``detail``."""
-    response = client.get("/api/urls/")
+    response = client.delete("/api/urls/")
     assert response.status_code == 405
     assert response.json() == {
         "status_code": 405,
-        "detail": 'Method "GET" not allowed.',
+        "detail": 'Method "DELETE" not allowed.',
     }
 
 
+@pytest.mark.django_db
 def test_short_url_without_a_request_is_a_path() -> None:
     """Outside a request the serializer still gives a usable path."""
-    short_url = ShortURL(original_url="https://example.com", short_code="abc1234")
+    short_url = ShortURL.objects.create(
+        original_url="https://example.com", short_code="abc1234"
+    )
     assert ShortURLSerializer(short_url).data["short_url"] == "/abc1234/"

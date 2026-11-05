@@ -1,21 +1,43 @@
 """Tests for the OpenAPI schema and the Swagger UI."""
 
+from typing import Any
+
+import pytest
 from django.test import Client
 
 
-def test_schema_lists_the_shorten_endpoint(client: Client) -> None:
-    """The OpenAPI schema documents ``POST /api/urls/``."""
+@pytest.fixture(name="paths")
+def fixture_paths(client: Client) -> dict[str, Any]:
+    """The ``paths`` part of the OpenAPI schema."""
     response = client.get("/api/schema/", {"format": "json"})
     assert response.status_code == 200
-    responses = response.json()["paths"]["/api/urls/"]["post"]["responses"]
-    assert set(responses) == {"201", "400", "500"}
+    paths: dict[str, Any] = response.json()["paths"]
+    return paths
 
 
-def test_schema_lists_the_redirect_endpoint(client: Client) -> None:
-    """The OpenAPI schema documents ``GET /{short_code}/``."""
-    response = client.get("/api/schema/", {"format": "json"})
-    responses = response.json()["paths"]["/{short_code}/"]["get"]["responses"]
-    assert set(responses) == {"302", "404", "500"}
+@pytest.mark.parametrize(
+    ("path", "method", "codes"),
+    [
+        ("/api/urls/", "get", {"200", "400", "500"}),
+        ("/api/urls/", "post", {"201", "400", "409", "500"}),
+        ("/api/urls/{short_code}/", "get", {"200", "400", "404", "500"}),
+        ("/api/urls/{short_code}/", "put", {"200", "400", "404", "409", "500"}),
+        ("/api/urls/{short_code}/", "patch", {"200", "400", "404", "409", "500"}),
+        ("/api/urls/{short_code}/", "delete", {"204", "404"}),
+        ("/{short_code}/", "get", {"302", "404", "410", "500"}),
+    ],
+)
+def test_schema_lists_every_endpoint_with_its_codes(
+    paths: dict[str, Any], path: str, method: str, codes: set[str]
+) -> None:
+    """Swagger documents each endpoint and its success and error codes."""
+    assert set(paths[path][method]["responses"]) == codes
+
+
+def test_list_documents_its_filters(paths: dict[str, Any]) -> None:
+    """``?status=`` and ``?ordering=`` show up in Swagger."""
+    names = {param["name"] for param in paths["/api/urls/"]["get"]["parameters"]}
+    assert {"status", "ordering", "page"} <= names
 
 
 def test_swagger_ui_loads(client: Client) -> None:

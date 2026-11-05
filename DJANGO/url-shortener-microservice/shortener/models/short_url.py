@@ -2,6 +2,7 @@
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from shortener.models.managers import ShortURLQuerySet
 from shortener.models.tag import Tag
@@ -55,3 +56,8 @@ class ShortURL(models.Model):
     def __str__(self) -> str:
         """Show the code and where it points."""
         return f"{self.short_code} -> {self.original_url}"
+
+    @property
+    def is_expired(self) -> bool:
+        """True once ``expires_at`` has passed."""
+        return self.expires_at is not None and self.expires_at <= timezone.now()

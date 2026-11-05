@@ -1,11 +1,16 @@
-"""Short URL routes: create a code, and redirect a code to its URL."""
+"""Short URL routes: manage URLs, and redirect a code to its URL."""
 
 from django.urls import path
 
-from shortener.views import ShortURLCreateView, redirect_to_original
+from shortener.views import (
+    ShortURLDetailView,
+    ShortURLListCreateView,
+    redirect_to_original,
+)
 
 urlpatterns = [
-    path("api/urls/", ShortURLCreateView.as_view(), name="create"),
+    path("api/urls/", ShortURLListCreateView.as_view(), name="list"),
+    path("api/urls/<str:short_code>/", ShortURLDetailView.as_view(), name="detail"),
     # Catch-all for codes, so it must stay after every other route.
     path("<str:short_code>/", redirect_to_original, name="redirect"),
 ]
