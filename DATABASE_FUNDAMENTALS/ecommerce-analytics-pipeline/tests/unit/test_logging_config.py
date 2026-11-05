@@ -6,7 +6,11 @@ from pathlib import Path
 import pytest
 
 from ecommerce_pipeline.exceptions import LogSetupError
-from ecommerce_pipeline.logging_config import PACKAGE_LOGGER, configure_logging
+from ecommerce_pipeline.logging_config import (
+    FILE_ONLY,
+    PACKAGE_LOGGER,
+    configure_logging,
+)
 
 LOGGER = logging.getLogger(f"{PACKAGE_LOGGER}.tests")
 
@@ -41,6 +45,16 @@ def test_verbose_shows_everything_in_the_terminal(
     configure_logging(tmp_path / "run.log", verbose=True)
     LOGGER.debug("debug message")
     assert "debug message" in capsys.readouterr().err
+
+
+def test_file_only_message_stays_out_of_the_terminal(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A ``FILE_ONLY`` error is written to the file but not to stderr."""
+    log_file = configure_logging(tmp_path / "run.log", verbose=True)
+    LOGGER.error("hidden error", extra={FILE_ONLY: True})
+    assert "hidden error" not in capsys.readouterr().err
+    assert " ERROR " in log_file.read_text(encoding="utf-8")
 
 
 def test_calling_again_does_not_log_twice(tmp_path: Path) -> None:

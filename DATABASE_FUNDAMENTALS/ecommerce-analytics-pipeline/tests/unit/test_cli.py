@@ -33,16 +33,22 @@ def test_setup_creates_tables_and_indexes_and_closes_the_pool(
 
 
 def test_expected_error_prints_a_message_and_exits_with_1(
-    mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """An ``EcommerceError`` is shown as one line, not a traceback."""
+    """An ``EcommerceError`` is shown as an error table on stderr, not a traceback."""
     mocker.patch("ecommerce_pipeline.cli.load_settings")
     mocker.patch(
         "ecommerce_pipeline.cli.create_pool",
         side_effect=DatabaseConnectionError("Cannot connect to PostgreSQL"),
     )
     assert cli.main(["setup"]) == 1
-    assert "Error: Cannot connect to PostgreSQL" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert err.splitlines()[0] == "Error"
+    assert "Cannot connect to PostgreSQL" in err
+    assert caplog.records[-1].levelname == "ERROR"
+    assert caplog.records[-1].exc_info is not None
 
 
 def test_unknown_command_exits_with_usage_error() -> None:
@@ -117,4 +123,5 @@ def test_benchmark_prints_before_after_and_speedup(
     assert "Seq Scan" in out
     assert "Index Scan" in out
     assert "20x faster" in out
+    assert "Run `ecommerce seed`" in out
     pool.closeall.assert_called_once()

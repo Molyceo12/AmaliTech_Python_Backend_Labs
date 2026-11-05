@@ -37,7 +37,8 @@ def test_demo_orders_the_cart_and_shows_cache_source(
     cache.exists.side_effect = [0, 1]
     run_demo(pool, cache, MagicMock())
     create_order.assert_called_once_with(pool, CUSTOMER_ID, {1: 1})
-    out = capsys.readouterr().out
-    assert "order 7: 1 items, 15.00" in out
-    assert "from database: Shirt" in out
-    assert "from cache: Shirt" in out
+    # Join the padded cells with single spaces to read the rows.
+    out = " ".join(capsys.readouterr().out.split())
+    assert ": 7 : 2026-10-29 00:00 : 1 : 15.00 :" in out
+    assert ": 1 : database : Shirt, ... :" in out
+    assert ": 2 : cache : Shirt, ... :" in out
