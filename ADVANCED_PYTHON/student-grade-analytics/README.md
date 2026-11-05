@@ -95,15 +95,38 @@ python -m poetry run grade-analytics data/invalid_rows.csv --no-charts
 
 ## Test scenarios
 
-Main ways to check the tool from the terminal:
+Main ways to check the tool from the terminal.
 
-| # | Scenario | Command | Expected result |
-|---|---|---|---|
-| 1 | Normal run | `python -m poetry run grade-analytics data/students.csv` | Progress steps and summary; `output/report.json` and 5 charts written |
-| 2 | Invalid rows | `python -m poetry run grade-analytics data/invalid_rows.csv` | Bad rows skipped and listed with line numbers (e.g. `Line 5: score 'eighty' is not a number`); the rest is still analysed |
-| 3 | Missing file | `python -m poetry run grade-analytics data/nope.csv` | `Error: Data file not found: data\nope.csv`, exit code `1` |
-| 4 | Bad option | `python -m poetry run grade-analytics data/students.csv --top 0` | `error: argument --top: must be at least 1, got 0` |
-| 5 | Good option | `python -m poetry run grade-analytics data/students.csv --top 10` | Top 10 performers in the report (more if tied with 10th place) |
+**1. Normal run:** progress steps and summary; `output/report.json` and 5 charts written.
+
+```bash
+python -m poetry run grade-analytics data/students.csv
+```
+
+**2. Invalid rows:** bad rows skipped and listed with line numbers
+(e.g. `Line 5: score 'eighty' is not a number`); the rest is still analysed.
+
+```bash
+python -m poetry run grade-analytics data/invalid_rows.csv
+```
+
+**3. Missing file:** `Error: Data file not found: data\nope.csv`, exit code `1`.
+
+```bash
+python -m poetry run grade-analytics data/nope.csv
+```
+
+**4. Bad option:** `error: argument --top: must be at least 1, got 0`.
+
+```bash
+python -m poetry run grade-analytics data/students.csv --top 0
+```
+
+**5. Good option:** top 10 performers in the report (more if tied with 10th place).
+
+```bash
+python -m poetry run grade-analytics data/students.csv --top 10
+```
 
 ## Logging
 
