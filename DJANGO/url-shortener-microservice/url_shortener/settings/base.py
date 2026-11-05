@@ -68,6 +68,9 @@ DATABASES = {
     )
 }
 
+# Our own user (accounts/models/user.py): email login, tier.
+AUTH_USER_MODEL = "accounts.User"
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": f"django.contrib.auth.password_validation.{name}"}
     for name in (
