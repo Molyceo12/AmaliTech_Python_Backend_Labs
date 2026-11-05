@@ -2,36 +2,58 @@
 # gets only the installed packages and the code (no Poetry, no build tools).
 
 # --- Stage 1: install the dependencies into /opt/venv ---
+
+# Small Python image; this stage is named "builder".
 FROM python:3.12-slim AS builder
 
+# pip: keep no download cache, skip the update check (smaller, quieter).
 ENV PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Poetry goes into the builder's own Python; it installs the app's packages
-# into the active /opt/venv, which is all the runtime stage copies.
+# Install Poetry and create the venv the app's packages go into.
 RUN pip install poetry==2.5.1 && python -m venv /opt/venv
+
+# Make /opt/venv the active venv, so Poetry installs into it.
 ENV VIRTUAL_ENV=/opt/venv \
     PATH="/opt/venv/bin:$PATH"
 
+# Work in /build.
 WORKDIR /build
+
+# Copy only the dependency files (the code comes later).
 COPY pyproject.toml poetry.lock ./
-# Main dependencies only: dev tools (pytest, mypy, ...) stay out of the image.
+
+# Install the main packages only: no dev tools, not the app itself.
 RUN poetry install --only main --no-root
 
 # --- Stage 2: small runtime image ---
+
+# Start again from a clean small image; this stage is named "runtime".
 FROM python:3.12-slim AS runtime
 
+# No .pyc files, logs shown at once, use the venv, prod settings.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
     DJANGO_SETTINGS_MODULE=url_shortener.settings.prod
 
-# Run as a normal user, not root.
+# Create a normal user "app" (safer than root).
 RUN useradd --create-home --uid 1000 app
+
+# Work in /app.
 WORKDIR /app
+
+# Take only the installed packages from the builder stage.
 COPY --from=builder /opt/venv /opt/venv
+
+# Copy the code, owned by the app user.
 COPY --chown=app:app . .
+
+# Run everything below as the app user.
 USER app
 
+# The app listens on port 8000.
 EXPOSE 8000
+
+# Start Gunicorn with 3 workers on port 8000.
 CMD ["gunicorn", "url_shortener.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
