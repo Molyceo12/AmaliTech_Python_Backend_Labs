@@ -87,6 +87,15 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Print logs (and server error tracebacks) to the console, also with DEBUG off,
+# so `docker compose logs web` shows them.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": "INFO"},
+}
+
 # drf-spectacular builds the OpenAPI schema shown at /api/docs/.
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
