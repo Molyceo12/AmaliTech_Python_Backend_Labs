@@ -109,15 +109,21 @@ python -m poetry run python manage.py migrate   # adds the new tables and fields
 
 | Method | Route | What it does |
 |---|---|---|
-| `POST` | `/api/v1/urls/` | creates a short URL |
-| `GET` | `/<short_code>/` | redirects to the original URL |
+| `POST` | `/api/v1/urls/` | creates a short URL (optional alias, expiry, title, description, tags) |
+| `GET` | `/api/v1/urls/` | lists short URLs, 20 per page |
+| `GET` | `/api/v1/urls/<short_code>/` | shows one URL with `total_clicks` |
+| `PUT` / `PATCH` | `/api/v1/urls/<short_code>/` | changes a URL |
+| `DELETE` | `/api/v1/urls/<short_code>/` | deletes a URL |
+| `GET` | `/<short_code or alias>/` | redirects to the original URL and records a click |
 | `GET` | `/api/docs/` | Swagger UI |
 | `GET` | `/api/schema/` | OpenAPI schema |
+
+List filters: `?status=active`, `?status=expired`, `?ordering=popular` (can be combined).
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/urls/ \
      -H "Content-Type: application/json" \
-     -d '{"original_url": "https://www.djangoproject.com/start/"}'
+     -d '{"original_url": "https://www.djangoproject.com/start/", "custom_alias": "django", "tags": ["docs"]}'
 ```
 
 ```json
@@ -128,18 +134,33 @@ curl -X POST http://localhost:8000/api/v1/urls/ \
     "original_url": "https://www.djangoproject.com/start/",
     "short_code": "M1gmaSk",
     "short_url": "http://localhost:8000/M1gmaSk/",
-    "created_at": "2026-10-30T12:23:36.052396Z"
+    "custom_alias": "django",
+    "title": "",
+    "description": "",
+    "expires_at": null,
+    "is_active": true,
+    "tags": ["docs"],
+    "owner": null,
+    "click_count": 0,
+    "created_at": "2026-11-05T12:23:36.052396Z",
+    "updated_at": "2026-11-05T12:23:36.052412Z"
   }
 }
 ```
 
+`owner` is read-only and stays empty until login arrives (Module 7).
+
 | Status | When |
 |---|---|
+| `200` | URL listed, shown or changed |
 | `201` | short URL created |
+| `204` | short URL deleted |
 | `302` | redirect to the original URL |
-| `400` | invalid or missing URL |
-| `404` | unknown short code or route |
+| `400` | invalid URL, past expiry, reserved or bad alias, unknown filter |
+| `404` | unknown or switched-off short code, unknown route |
 | `405` | wrong HTTP method |
+| `409` | custom alias already taken |
+| `410` | short URL expired |
 | `500` | server error (logged, never shown to the client) |
 
 ### Response format
