@@ -89,6 +89,22 @@ rm db.sqlite3                  # SQLite
 docker compose down -v         # Docker PostgreSQL volume
 ```
 
+## URL data
+
+| Model | Holds |
+|---|---|
+| `ShortURL` | `original_url`, `short_code`, `custom_alias`, `owner`, `is_active`, `expires_at`, `title`, `description`, `favicon`, `click_count`, `tags` |
+| `Tag` | unique `name`, saved lowercase (many-to-many with `ShortURL`) |
+| `Click` | one visit: time, IP, city, country, user agent, referrer (deleted with its URL) |
+
+Named queries: `ShortURL.objects.active_urls()`, `.expired_urls()`, `.popular_urls()`.
+Indexes on `created_at`, `expires_at` and `Click (short_url, clicked_at)`;
+the database refuses an `expires_at` before `created_at`.
+
+```bash
+python -m poetry run python manage.py migrate   # adds the new tables and fields
+```
+
 ## API endpoints
 
 | Method | Route | What it does |
