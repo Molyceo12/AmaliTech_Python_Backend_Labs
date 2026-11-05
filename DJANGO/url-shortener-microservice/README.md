@@ -101,9 +101,67 @@ Named queries: `ShortURL.objects.active_urls()`, `.expired_urls()`, `.popular_ur
 Indexes on `created_at`, `expires_at` and `Click (short_url, clicked_at)`;
 the database refuses an `expires_at` before `created_at`.
 
-```bash
-python -m poetry run python manage.py migrate   # adds the new tables and fields
+```mermaid
+erDiagram
+    USER ||--o{ SHORT_URL : owns
+    SHORT_URL ||--o{ CLICK : has
+    SHORT_URL }o--o{ TAG : tagged
+    USER {
+        string email UK
+        string tier
+        bool is_premium
+    }
+    SHORT_URL {
+        string short_code UK
+        string custom_alias UK
+        string original_url
+        bool is_active
+        datetime expires_at
+        int click_count
+    }
+    CLICK {
+        datetime clicked_at
+        string ip_address
+        string country
+    }
+    TAG {
+        string name UK
+    }
 ```
+
+Migrations:
+
+```bash
+python -m poetry run python manage.py makemigrations   # after a model change
+python -m poetry run python manage.py migrate          # apply them
+python -m poetry run python manage.py showmigrations   # what is applied
+```
+
+## Seeders
+
+`seed_dev` adds a user (`seed@example.com`, premium), 4 tags, 5 URLs (active, popular,
+alias `daily-news`, switched off, expired) and 12 clicks. Running it again adds nothing.
+It refuses when `DEBUG` is off, so it never touches production.
+
+```bash
+python -m poetry run python manage.py seed_dev
+docker compose exec -e DJANGO_SETTINGS_MODULE=url_shortener.settings.dev web python manage.py seed_dev
+```
+
+The seed user's password comes from `SEED_USER_PASSWORD` in `.env`; left empty, the
+user exists but can't log in.
+
+## Engineering decisions
+
+- **Email login + tier:** custom `User` from the start; `tier=admin` gives no admin rights.
+- **Alias checked against codes too:** `/<x>/` resolves both, so they can't clash (`409`).
+- **Inactive → `404`, expired → `410`:** a switched-off link looks unknown; an expired one says why.
+- **Click counter with `F()`:** the database adds 1, so clicks at the same moment all count.
+- **No N+1:** `select_related("owner")` + `prefetch_related("tags")` on the list,
+  `annotate(Count("clicks"))` on the detail; a test checks the query count.
+- **Indexes only where queries filter or sort:** not on `is_active` (2 values, little gain).
+- **Click IP from `REMOTE_ADDR` only:** `X-Forwarded-For` is sent by the client and can be faked.
+- **Seeders as a command, not a migration:** migrations run in production too.
 
 ## API endpoints
 
