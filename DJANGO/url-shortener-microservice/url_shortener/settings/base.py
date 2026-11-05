@@ -71,6 +71,9 @@ DATABASES = {
 # Our own user (accounts/models/user.py): email login, tier.
 AUTH_USER_MODEL = "accounts.User"
 
+# Password of the seed_dev user; empty means that user can't log in.
+SEED_USER_PASSWORD: str = config("SEED_USER_PASSWORD", default="")
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": f"django.contrib.auth.password_validation.{name}"}
     for name in (
