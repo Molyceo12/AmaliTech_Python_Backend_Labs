@@ -4,13 +4,28 @@ import logging
 from typing import Any
 
 from django.http import HttpRequest, JsonResponse
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 logger = logging.getLogger(__name__)
 
 SERVER_ERROR = {"status_code": 500, "detail": "Internal server error."}
+
+
+class Conflict(APIException):
+    """409: the value is already used, e.g. a taken custom alias."""
+
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "Conflict."
+
+
+class Gone(APIException):
+    """410: the resource existed but is no longer available, e.g. expired."""
+
+    status_code = status.HTTP_410_GONE
+    default_detail = "Gone."
 
 
 def json_exception_handler(exc: Exception, context: dict[str, Any]) -> Response:
