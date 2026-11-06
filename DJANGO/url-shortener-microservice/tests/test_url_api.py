@@ -173,7 +173,7 @@ def test_detail_shows_clicks_by_country(client: Client) -> None:
     url = _url()
     for country in ["Ghana", "Rwanda", "Rwanda", ""]:
         Click.objects.create(short_url=url, country=country)
-    body = client.get("/api/urls/abc1234/").json()
+    body = client.get("/api/v1/urls/abc1234/").json()["detail"]
     assert body["clicks_by_country"] == [
         {"country": "Rwanda", "total": 2},
         {"country": "", "total": 1},
@@ -184,7 +184,9 @@ def test_detail_shows_clicks_by_country(client: Client) -> None:
 def test_detail_without_clicks_has_empty_country_list(client: Client) -> None:
     """No clicks: ``clicks_by_country`` is ``[]``."""
     _url()
-    assert client.get("/api/urls/abc1234/").json()["clicks_by_country"] == []
+    assert (
+        client.get("/api/v1/urls/abc1234/").json()["detail"]["clicks_by_country"] == []
+    )
 
 
 def test_detail_query_count_does_not_grow_with_clicks(client: Client) -> None:
@@ -193,7 +195,7 @@ def test_detail_query_count_does_not_grow_with_clicks(client: Client) -> None:
 
     def queries() -> int:
         with CaptureQueriesContext(connection) as context:
-            client.get("/api/urls/abc1234/")
+            client.get("/api/v1/urls/abc1234/")
         return len(context)
 
     Click.objects.create(short_url=url, country="Ghana")
@@ -212,9 +214,12 @@ def test_put_replaces_fields_and_tags(client: Client) -> None:
         "is_active": False,
         "tags": ["new"],
     }
-    response = client.put("/api/v1/urls/abc1234/", body, content_type="application/json")
+    response = client.put(
+        "/api/v1/urls/abc1234/", body, content_type="application/json"
+    )
     assert response.status_code == 200
-    assert (response.json()["detail"]["title"], response.json()["detail"]["tags"]) == ("New", ["new"])
+    detail = response.json()["detail"]
+    assert (detail["title"], detail["tags"]) == ("New", ["new"])
     url = ShortURL.objects.get(short_code="abc1234")
     assert (url.original_url, url.is_active) == ("https://example.com/new", False)
 
@@ -267,3 +272,8 @@ def test_unknown_code_returns_404(client: Client, method: str) -> None:
         "/api/v1/urls/nothing/", {}, content_type="application/json"
     )
     assert response.status_code == 404
+
+
+def test_old_unversioned_route_is_gone(client: Client) -> None:
+    """``/api/urls/`` moved to ``/api/v1/urls/``."""
+    assert client.get("/api/urls/").status_code == 404
