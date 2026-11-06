@@ -5,6 +5,7 @@ from typing import Any
 
 from django.db.models import Q
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from shortener.models import ShortURL
@@ -95,15 +96,30 @@ class ShortURLSerializer(serializers.ModelSerializer[ShortURL]):
         return instance
 
 
+class CountryClicksSerializer(
+    serializers.Serializer[Any]
+):  # pylint: disable=abstract-method
+    """One country and its number of clicks (empty country: unknown)."""
+
+    country = serializers.CharField()
+    total = serializers.IntegerField()
+
+
 class ShortURLDetailSerializer(ShortURLSerializer):
-    """One URL, plus ``total_clicks`` counted by the database (``annotate``)."""
+    """One URL, plus click totals counted by the database (``annotate``)."""
 
     total_clicks = serializers.IntegerField(read_only=True)
+    clicks_by_country = serializers.SerializerMethodField()
 
     class Meta(ShortURLSerializer.Meta):
-        """Same fields plus the click total."""
+        """Same fields plus the click totals."""
 
-        fields = [*ShortURLSerializer.Meta.fields, "total_clicks"]
+        fields = [*ShortURLSerializer.Meta.fields, "total_clicks", "clicks_by_country"]
+
+    @extend_schema_field(CountryClicksSerializer(many=True))
+    def get_clicks_by_country(self, url: ShortURL) -> list[dict[str, Any]]:
+        """``[{"country": "Rwanda", "total": 3}, ...]``, most clicks first."""
+        return url.clicks_by_country()
 
 
 # Only describes the success body for Swagger; it never saves anything.
