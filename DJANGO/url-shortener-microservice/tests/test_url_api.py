@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from accounts.models import User
 from shortener.models import Click, ShortURL, Tag
+from tests.helpers import expire
 
 pytestmark = pytest.mark.django_db
 
@@ -119,10 +120,7 @@ def test_list_filters_and_ordering(client: Client) -> None:
     _url("hot1111", click_count=9)
     _url("off1111", is_active=False)
     old = _url("old1111", expires_at=timezone.now() + timedelta(seconds=1))
-    ShortURL.objects.filter(pk=old.pk).update(
-        expires_at=timezone.now() - timedelta(days=1),
-        created_at=timezone.now() - timedelta(days=2),
-    )
+    expire(old)
 
     def codes(query: str) -> list[str]:
         results = client.get(f"/api/v1/urls/?{query}").json()["detail"]["results"]

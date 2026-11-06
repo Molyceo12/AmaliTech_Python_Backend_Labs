@@ -7,6 +7,7 @@ from django.test import Client
 from django.utils import timezone
 
 from shortener.models import Click, ShortURL
+from tests.helpers import expire
 
 
 def _url(**fields: object) -> ShortURL:
@@ -60,10 +61,7 @@ def test_unknown_or_inactive_returns_404(client: Client, code: str) -> None:
 def test_expired_returns_410(client: Client) -> None:
     """An expired URL is gone; no click is saved."""
     url = _url(expires_at=timezone.now() + timedelta(seconds=1))
-    ShortURL.objects.filter(pk=url.pk).update(
-        expires_at=timezone.now() - timedelta(days=1),
-        created_at=timezone.now() - timedelta(days=2),
-    )
+    expire(url)
     response = client.get("/abc1234/")
     assert response.status_code == 410
     assert response.json() == {

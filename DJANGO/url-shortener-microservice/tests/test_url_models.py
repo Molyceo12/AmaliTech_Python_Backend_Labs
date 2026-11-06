@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from accounts.models import User
 from shortener.models import Click, ShortURL, Tag
+from tests.helpers import expire
 
 pytestmark = pytest.mark.django_db
 
@@ -78,10 +79,7 @@ def test_active_and_expired_urls() -> None:
     live = _url("live111")
     _url("off1111", is_active=False)
     old = _url("old1111", expires_at=timezone.now() + timedelta(seconds=1))
-    ShortURL.objects.filter(pk=old.pk).update(
-        expires_at=timezone.now() - timedelta(days=1),
-        created_at=timezone.now() - timedelta(days=2),
-    )
+    expire(old)
     assert list(ShortURL.objects.active_urls()) == [live]
     assert list(ShortURL.objects.expired_urls()) == [old]
 
