@@ -94,10 +94,11 @@ docker compose down -v         # Docker PostgreSQL volume
 | Model | Holds |
 |---|---|
 | `ShortURL` | `original_url`, `short_code`, `custom_alias`, `owner`, `is_active`, `expires_at`, `title`, `description`, `favicon`, `click_count`, `tags` |
-| `Tag` | unique `name`, saved lowercase (many-to-many with `ShortURL`) |
+| `Tag` | unique `name`, saved lowercase (many-to-many with `ShortURL`); `marketing` and `social` come with migration `0003` |
 | `Click` | one visit: time, IP, city, country, user agent, referrer (deleted with its URL) |
 
-Named queries: `ShortURL.objects.active_urls()`, `.expired_urls()`, `.popular_urls()`.
+Named queries: `ShortURL.objects.active_urls()`, `.expired_urls()`, `.popular_urls()`;
+`url.clicks_by_country()` counts clicks per country in SQL (`values` + `annotate`).
 Indexes on `created_at`, `expires_at` and `Click (short_url, clicked_at)`;
 the database refuses an `expires_at` before `created_at`.
 
@@ -139,7 +140,8 @@ python -m poetry run python manage.py showmigrations   # what is applied
 
 ## Seeders
 
-`seed_dev` adds a user (`seed@example.com`, premium), 4 tags, 5 URLs (active, popular,
+The default tags (`marketing`, `social`) are made by a data migration, so every
+database has them. `seed_dev` adds a user (`seed@example.com`, premium), 4 tags, 5 URLs (active, popular,
 alias `daily-news`, switched off, expired) and 12 clicks. Running it again adds nothing.
 It refuses when `DEBUG` is off, so it never touches production.
 
@@ -161,7 +163,10 @@ user exists but can't log in.
   `annotate(Count("clicks"))` on the detail; a test checks the query count.
 - **Indexes only where queries filter or sort:** not on `is_active` (2 values, little gain).
 - **Click IP from `REMOTE_ADDR` only:** `X-Forwarded-For` is sent by the client and can be faked.
-- **Seeders as a command, not a migration:** migrations run in production too.
+- **Default tags in a migration, seeders in a command:** migrations run everywhere (prod too),
+  so only the tags every database needs go there; sample data stays dev-only.
+- **Versioned API (`/api/v1/`):** a future `v2` can change responses without breaking
+  `v1` clients. The redirect `/<code>/` has no version: short links must never change.
 
 ## API endpoints
 
@@ -169,7 +174,7 @@ user exists but can't log in.
 |---|---|---|
 | `POST` | `/api/v1/urls/` | creates a short URL (optional alias, expiry, title, description, tags) |
 | `GET` | `/api/v1/urls/` | lists short URLs, 20 per page |
-| `GET` | `/api/v1/urls/<short_code>/` | shows one URL with `total_clicks` |
+| `GET` | `/api/v1/urls/<short_code>/` | shows one URL with `total_clicks` and `clicks_by_country` |
 | `PUT` / `PATCH` | `/api/v1/urls/<short_code>/` | changes a URL |
 | `DELETE` | `/api/v1/urls/<short_code>/` | deletes a URL |
 | `GET` | `/<short_code or alias>/` | redirects to the original URL and records a click |
@@ -207,6 +212,15 @@ curl -X POST http://localhost:8000/api/v1/urls/ \
 ```
 
 `owner` is read-only and stays empty until login arrives (Module 7).
+
+The detail (`GET /api/v1/urls/<short_code>/`) adds, inside `detail`:
+
+```json
+"total_clicks": 4,
+"clicks_by_country": [{"country": "Rwanda", "total": 2}, {"country": "", "total": 1}]
+```
+
+An empty `country` means unknown (no geo lookup yet).
 
 | Status | When |
 |---|---|
