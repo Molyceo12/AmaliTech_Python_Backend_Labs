@@ -5,25 +5,15 @@ from typing import Any
 
 from django.db.models import Q
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from shortener.models import ShortURL
+from shortener.serializers.fields import TagNamesField
 from shortener.services.short_codes import set_tags
 from url_shortener.exceptions import Conflict
 
 # Routes that live at the top level, so an alias can't take their place.
 RESERVED_ALIASES = {"api", "admin"}
-
-
-class TagNamesField(serializers.ListField):
-    """Tags in and out as names, e.g. ``["docs", "python"]``."""
-
-    child = serializers.CharField(max_length=50)
-
-    def to_representation(self, data: Any) -> list[str]:
-        """``data`` is the URL's tags manager; ``all()`` uses the prefetch."""
-        return [tag.name for tag in data.all()]
 
 
 class ShortURLSerializer(serializers.ModelSerializer[ShortURL]):
@@ -94,40 +84,3 @@ class ShortURLSerializer(serializers.ModelSerializer[ShortURL]):
         if tags is not None:
             set_tags(instance, tags)
         return instance
-
-
-class CountryClicksSerializer(
-    serializers.Serializer[Any]
-):  # pylint: disable=abstract-method
-    """One country and its number of clicks (empty country: unknown)."""
-
-    country = serializers.CharField()
-    total = serializers.IntegerField()
-
-
-class ShortURLDetailSerializer(ShortURLSerializer):
-    """One URL, plus click totals counted by the database (``annotate``)."""
-
-    total_clicks = serializers.IntegerField(read_only=True)
-    clicks_by_country = serializers.SerializerMethodField()
-
-    class Meta(ShortURLSerializer.Meta):
-        """Same fields plus the click totals."""
-
-        fields = [*ShortURLSerializer.Meta.fields, "total_clicks", "clicks_by_country"]
-
-    @extend_schema_field(CountryClicksSerializer(many=True))
-    def get_clicks_by_country(self, url: ShortURL) -> list[dict[str, Any]]:
-        """``[{"country": "Rwanda", "total": 3}, ...]``, most clicks first."""
-        return url.clicks_by_country()
-
-
-# Only describes the success body for Swagger; it never saves anything.
-class ShortURLCreatedSerializer(
-    serializers.Serializer[Any]
-):  # pylint: disable=abstract-method
-    """The success body: status code, message and the short URL as ``detail``."""
-
-    status_code = serializers.IntegerField()
-    message = serializers.CharField()
-    detail = ShortURLSerializer()
