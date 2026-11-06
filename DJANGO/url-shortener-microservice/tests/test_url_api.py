@@ -167,6 +167,41 @@ def test_detail_shows_total_clicks(client: Client) -> None:
     assert response.json()["total_clicks"] == 2
 
 
+def test_detail_shows_clicks_by_country(client: Client) -> None:
+    """Totals per country, most first; an empty country is kept as unknown."""
+    url = _url()
+    for country in ["Ghana", "Rwanda", "Rwanda", ""]:
+        Click.objects.create(short_url=url, country=country)
+    body = client.get("/api/urls/abc1234/").json()
+    assert body["clicks_by_country"] == [
+        {"country": "Rwanda", "total": 2},
+        {"country": "", "total": 1},
+        {"country": "Ghana", "total": 1},
+    ]
+
+
+def test_detail_without_clicks_has_empty_country_list(client: Client) -> None:
+    """No clicks: ``clicks_by_country`` is ``[]``."""
+    _url()
+    assert client.get("/api/urls/abc1234/").json()["clicks_by_country"] == []
+
+
+def test_detail_query_count_does_not_grow_with_clicks(client: Client) -> None:
+    """The country totals are one ``GROUP BY`` query, not one per click."""
+    url = _url()
+
+    def queries() -> int:
+        with CaptureQueriesContext(connection) as context:
+            client.get("/api/urls/abc1234/")
+        return len(context)
+
+    Click.objects.create(short_url=url, country="Ghana")
+    before = queries()
+    for country in ["Kenya", "Rwanda", "Rwanda"]:
+        Click.objects.create(short_url=url, country=country)
+    assert queries() == before
+
+
 def test_put_replaces_fields_and_tags(client: Client) -> None:
     """``PUT`` changes the URL, details and tags."""
     _url().tags.add(Tag.objects.create(name="old"))

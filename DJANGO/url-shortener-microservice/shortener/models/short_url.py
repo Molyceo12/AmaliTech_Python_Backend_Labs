@@ -1,7 +1,10 @@
 """The ``ShortURL`` model: one long URL and its short code."""
 
+from typing import Any
+
 from django.conf import settings
 from django.db import models
+from django.db.models import Count
 from django.utils import timezone
 
 from shortener.models.managers import ShortURLQuerySet
@@ -61,3 +64,8 @@ class ShortURL(models.Model):
     def is_expired(self) -> bool:
         """True once ``expires_at`` has passed."""
         return self.expires_at is not None and self.expires_at <= timezone.now()
+
+    def clicks_by_country(self) -> list[dict[str, Any]]:
+        """Clicks per country, most first, counted in SQL (one ``GROUP BY`` query)."""
+        totals = self.clicks.values("country").annotate(total=Count("id"))
+        return list(totals.order_by("-total", "country"))
