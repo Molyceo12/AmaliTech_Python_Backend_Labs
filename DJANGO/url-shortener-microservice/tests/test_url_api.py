@@ -26,9 +26,9 @@ def _url(code: str = "abc1234", **fields: Any) -> ShortURL:
 
 
 def _post(client: Client, **data: Any) -> Any:
-    """POST JSON to ``/api/urls/`` with a valid URL plus ``data``."""
+    """POST JSON to ``/api/v1/urls/`` with a valid URL plus ``data``."""
     body = {"original_url": "https://example.com/", **data}
-    return client.post("/api/urls/", body, content_type="application/json")
+    return client.post("/api/v1/urls/", body, content_type="application/json")
 
 
 # --- create -------------------------------------------------------------
@@ -108,7 +108,7 @@ def test_list_is_paginated(client: Client) -> None:
     """The list has ``count`` and ``results``; newest first."""
     _url("aaa1111")
     _url("bbb2222")
-    body = client.get("/api/urls/").json()
+    body = client.get("/api/v1/urls/").json()
     assert body["count"] == 2
     assert [item["short_code"] for item in body["results"]] == ["bbb2222", "aaa1111"]
 
@@ -122,7 +122,7 @@ def test_list_filters_and_ordering(client: Client) -> None:
     expire(old)
 
     def codes(query: str) -> list[str]:
-        results = client.get(f"/api/urls/?{query}").json()["results"]
+        results = client.get(f"/api/v1/urls/?{query}").json()["results"]
         return [item["short_code"] for item in results]
 
     assert set(codes("status=active")) == {"live111", "hot1111"}
@@ -133,7 +133,7 @@ def test_list_filters_and_ordering(client: Client) -> None:
 @pytest.mark.parametrize("query", ["status=old", "ordering=newest"])
 def test_unknown_filter_returns_400(client: Client, query: str) -> None:
     """Only the documented values are accepted."""
-    response = client.get(f"/api/urls/?{query}")
+    response = client.get(f"/api/v1/urls/?{query}")
     assert response.status_code == 400
 
 
@@ -144,7 +144,7 @@ def test_list_query_count_does_not_grow(client: Client) -> None:
 
     def queries_for_list() -> int:
         with CaptureQueriesContext(connection) as queries:
-            client.get("/api/urls/")
+            client.get("/api/v1/urls/")
         return len(queries)
 
     _url("url0000", owner=user).tags.add(tag)
@@ -162,7 +162,7 @@ def test_detail_shows_total_clicks(client: Client) -> None:
     url = _url()
     Click.objects.create(short_url=url)
     Click.objects.create(short_url=url)
-    response = client.get("/api/urls/abc1234/")
+    response = client.get("/api/v1/urls/abc1234/")
     assert response.status_code == 200
     assert response.json()["total_clicks"] == 2
 
@@ -172,7 +172,7 @@ def test_detail_shows_clicks_by_country(client: Client) -> None:
     url = _url()
     for country in ["Ghana", "Rwanda", "Rwanda", ""]:
         Click.objects.create(short_url=url, country=country)
-    body = client.get("/api/urls/abc1234/").json()
+    body = client.get("/api/v1/urls/abc1234/").json()
     assert body["clicks_by_country"] == [
         {"country": "Rwanda", "total": 2},
         {"country": "", "total": 1},
@@ -183,7 +183,7 @@ def test_detail_shows_clicks_by_country(client: Client) -> None:
 def test_detail_without_clicks_has_empty_country_list(client: Client) -> None:
     """No clicks: ``clicks_by_country`` is ``[]``."""
     _url()
-    assert client.get("/api/urls/abc1234/").json()["clicks_by_country"] == []
+    assert client.get("/api/v1/urls/abc1234/").json()["clicks_by_country"] == []
 
 
 def test_detail_query_count_does_not_grow_with_clicks(client: Client) -> None:
@@ -192,7 +192,7 @@ def test_detail_query_count_does_not_grow_with_clicks(client: Client) -> None:
 
     def queries() -> int:
         with CaptureQueriesContext(connection) as context:
-            client.get("/api/urls/abc1234/")
+            client.get("/api/v1/urls/abc1234/")
         return len(context)
 
     Click.objects.create(short_url=url, country="Ghana")
@@ -211,7 +211,9 @@ def test_put_replaces_fields_and_tags(client: Client) -> None:
         "is_active": False,
         "tags": ["new"],
     }
-    response = client.put("/api/urls/abc1234/", body, content_type="application/json")
+    response = client.put(
+        "/api/v1/urls/abc1234/", body, content_type="application/json"
+    )
     assert response.status_code == 200
     assert (response.json()["title"], response.json()["tags"]) == ("New", ["new"])
     url = ShortURL.objects.get(short_code="abc1234")
@@ -222,7 +224,7 @@ def test_patch_keeps_own_alias_and_tags(client: Client) -> None:
     """Sending its own alias again is not a clash; tags stay when not sent."""
     _url(custom_alias="docs").tags.add(Tag.objects.create(name="keep"))
     response = client.patch(
-        "/api/urls/abc1234/",
+        "/api/v1/urls/abc1234/",
         {"custom_alias": "docs", "title": "T"},
         content_type="application/json",
     )
@@ -234,7 +236,7 @@ def test_patch_null_removes_the_alias(client: Client) -> None:
     """``"custom_alias": null`` clears it, so the code alone works again."""
     _url(custom_alias="docs")
     response = client.patch(
-        "/api/urls/abc1234/", {"custom_alias": None}, content_type="application/json"
+        "/api/v1/urls/abc1234/", {"custom_alias": None}, content_type="application/json"
     )
     assert response.status_code == 200
     assert ShortURL.objects.get().custom_alias is None
@@ -245,7 +247,7 @@ def test_patch_to_taken_alias_returns_409(client: Client) -> None:
     _url("aaa1111", custom_alias="docs")
     _url("bbb2222")
     response = client.patch(
-        "/api/urls/bbb2222/",
+        "/api/v1/urls/bbb2222/",
         {"custom_alias": "docs"},
         content_type="application/json",
     )
@@ -255,7 +257,7 @@ def test_patch_to_taken_alias_returns_409(client: Client) -> None:
 def test_delete_returns_204(client: Client) -> None:
     """The URL is gone afterwards."""
     _url()
-    assert client.delete("/api/urls/abc1234/").status_code == 204
+    assert client.delete("/api/v1/urls/abc1234/").status_code == 204
     assert not ShortURL.objects.exists()
 
 
@@ -263,6 +265,11 @@ def test_delete_returns_204(client: Client) -> None:
 def test_unknown_code_returns_404(client: Client, method: str) -> None:
     """Every detail method answers 404 for a code that doesn't exist."""
     response = getattr(client, method)(
-        "/api/urls/nothing/", {}, content_type="application/json"
+        "/api/v1/urls/nothing/", {}, content_type="application/json"
     )
     assert response.status_code == 404
+
+
+def test_old_unversioned_route_is_gone(client: Client) -> None:
+    """``/api/urls/`` moved to ``/api/v1/urls/``."""
+    assert client.get("/api/urls/").status_code == 404

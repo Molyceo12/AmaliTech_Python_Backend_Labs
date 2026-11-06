@@ -1,4 +1,4 @@
-"""Tests for ``POST /api/urls/``."""
+"""Tests for ``POST /api/v1/urls/``."""
 
 import pytest
 from django.test import Client
@@ -10,7 +10,9 @@ from shortener.serializers import ShortURLSerializer
 @pytest.mark.django_db
 def test_valid_url_returns_201_and_a_short_link(client: Client) -> None:
     """A valid URL is saved; the body has status code, message and the URL."""
-    response = client.post("/api/urls/", {"original_url": "https://example.com/page"})
+    response = client.post(
+        "/api/v1/urls/", {"original_url": "https://example.com/page"}
+    )
     assert response.status_code == 201
     body = response.json()
     assert (body["status_code"], body["message"]) == (201, "Short URL created.")
@@ -32,7 +34,7 @@ def test_invalid_or_missing_url_returns_400(
     client: Client, data: dict[str, str], message: str
 ) -> None:
     """Nothing is saved; the error has the status code and the field message."""
-    response = client.post("/api/urls/", data)
+    response = client.post("/api/v1/urls/", data)
     assert response.status_code == 400
     assert response.json() == {
         "status_code": 400,
@@ -43,7 +45,7 @@ def test_invalid_or_missing_url_returns_400(
 
 def test_wrong_method_returns_the_json_error(client: Client) -> None:
     """Errors without a field keep DRF's message under ``detail``."""
-    response = client.delete("/api/urls/")
+    response = client.delete("/api/v1/urls/")
     assert response.status_code == 405
     assert response.json() == {
         "status_code": 405,

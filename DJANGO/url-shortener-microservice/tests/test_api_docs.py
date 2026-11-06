@@ -18,12 +18,12 @@ def fixture_paths(client: Client) -> dict[str, Any]:
 @pytest.mark.parametrize(
     ("path", "method", "codes"),
     [
-        ("/api/urls/", "get", {"200", "400", "500"}),
-        ("/api/urls/", "post", {"201", "400", "409", "500"}),
-        ("/api/urls/{short_code}/", "get", {"200", "400", "404", "500"}),
-        ("/api/urls/{short_code}/", "put", {"200", "400", "404", "409", "500"}),
-        ("/api/urls/{short_code}/", "patch", {"200", "400", "404", "409", "500"}),
-        ("/api/urls/{short_code}/", "delete", {"204", "404"}),
+        ("/api/v1/urls/", "get", {"200", "400", "500"}),
+        ("/api/v1/urls/", "post", {"201", "400", "409", "500"}),
+        ("/api/v1/urls/{short_code}/", "get", {"200", "400", "404", "500"}),
+        ("/api/v1/urls/{short_code}/", "put", {"200", "400", "404", "409", "500"}),
+        ("/api/v1/urls/{short_code}/", "patch", {"200", "400", "404", "409", "500"}),
+        ("/api/v1/urls/{short_code}/", "delete", {"204", "404"}),
         ("/{short_code}/", "get", {"302", "404", "410", "500"}),
     ],
 )
@@ -36,7 +36,7 @@ def test_schema_lists_every_endpoint_with_its_codes(
 
 def test_list_documents_its_filters(paths: dict[str, Any]) -> None:
     """``?status=`` and ``?ordering=`` show up in Swagger."""
-    names = {param["name"] for param in paths["/api/urls/"]["get"]["parameters"]}
+    names = {param["name"] for param in paths["/api/v1/urls/"]["get"]["parameters"]}
     assert {"status", "ordering", "page"} <= names
 
 

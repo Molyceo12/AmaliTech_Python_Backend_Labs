@@ -22,7 +22,7 @@ def test_crash_in_shorten_returns_json_500_and_logs(
 ) -> None:
     """A database error while saving gives a JSON 500 and a logged traceback."""
     monkeypatch.setattr("shortener.views.short_url.create_short_url", _crash)
-    response = client.post("/api/urls/", {"original_url": "https://example.com/"})
+    response = client.post("/api/v1/urls/", {"original_url": "https://example.com/"})
     assert response.status_code == 500
     assert response.json() == SERVER_ERROR
     assert "Unhandled error" in caplog.text

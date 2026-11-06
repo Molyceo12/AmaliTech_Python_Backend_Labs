@@ -1,4 +1,4 @@
-"""``/api/urls/``: list and create; ``/api/urls/<short_code>/``: one URL."""
+"""``/api/v1/urls/``: list and create; ``/api/v1/urls/<short_code>/``: one URL."""
 
 from typing import Any
 
