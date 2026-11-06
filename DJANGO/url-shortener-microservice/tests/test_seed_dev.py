@@ -35,7 +35,8 @@ def test_creates_user_tags_urls_and_clicks() -> None:
     assert _seed() == "Seeded 1 user, 4 tags, 5 URLs, 12 clicks."
     user = User.objects.get(email="seed@example.com")
     assert user.tier == User.Tier.PREMIUM
-    assert (Tag.objects.count(), Click.objects.count()) == (4, 12)
+    # 2 default tags from the migration + 4 seed tags.
+    assert (Tag.objects.count(), Click.objects.count()) == (6, 12)
     assert ShortURL.objects.filter(owner=user).count() == 5
 
 

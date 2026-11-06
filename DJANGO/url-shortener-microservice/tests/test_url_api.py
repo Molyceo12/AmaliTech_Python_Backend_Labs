@@ -58,7 +58,7 @@ def test_existing_tag_is_reused(client: Client) -> None:
     """A tag name already saved is linked, not created again."""
     Tag.objects.create(name="python")
     _post(client, tags=["Python"])
-    assert Tag.objects.count() == 1
+    assert Tag.objects.filter(name="python").count() == 1
 
 
 def test_client_cannot_set_read_only_fields(client: Client) -> None:

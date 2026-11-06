@@ -1,8 +1,10 @@
 """Tests for ``ShortURL``, ``Tag``, ``Click`` and the ``ShortURL`` queries."""
 
 from datetime import timedelta
+from importlib import import_module
 
 import pytest
+from django.apps import apps
 from django.db import IntegrityError
 from django.utils import timezone
 
@@ -101,3 +103,19 @@ def test_str_of_each_model() -> None:
     assert str(url) == "abc1234 -> https://example.com/"
     assert str(Tag.objects.create(name="docs")) == "docs"
     assert str(click).startswith(f"{url.pk} at ")
+
+
+def test_default_tags_come_from_the_data_migration() -> None:
+    """Migration ``0003`` seeds ``marketing`` and ``social`` in every database."""
+    names = set(Tag.objects.values_list("name", flat=True))
+    assert {"marketing", "social"} <= names
+
+
+def test_default_tags_migration_can_be_undone() -> None:
+    """The reverse step removes the default tags and nothing else."""
+    migration = import_module("shortener.migrations.0003_seed_default_tags")
+    Tag.objects.create(name="docs")
+    migration.remove_tags(apps, None)
+    assert list(Tag.objects.values_list("name", flat=True)) == ["docs"]
+    migration.add_tags(apps, None)
+    assert Tag.objects.count() == 3
