@@ -1,7 +1,5 @@
 """``/api/v1/urls/``: list and create; ``/api/v1/urls/<short_code>/``: one URL."""
 
-from typing import Any
-
 from django.db.models import Count, QuerySet
 from drf_spectacular.utils import (
     OpenApiParameter,
@@ -9,8 +7,8 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 from rest_framework import generics
-from rest_framework.exceptions import ValidationError
 
+from shortener.filters.short_url import ORDERINGS, STATUS_QUERIES, apply_filters
 from shortener.models import ShortURL
 from shortener.serializers import (
     ShortURLCreatedSerializer,
@@ -20,33 +18,15 @@ from shortener.serializers import (
 from shortener.services.short_codes import create_short_url
 from url_shortener.exceptions import ErrorSerializer
 
-# ?status= picks one of the custom queries from branch 6.
-STATUS_QUERIES = {"active": "active_urls", "expired": "expired_urls"}
-
 ERRORS = {400: ErrorSerializer, 500: ErrorSerializer}
 DETAIL_ERRORS = {**ERRORS, 404: ErrorSerializer}
-
-
-def _filtered(queryset: Any, params: Any) -> QuerySet[ShortURL]:
-    """Apply ``?status=active|expired`` and ``?ordering=popular``; else 400."""
-    status = params.get("status")
-    if status is not None:
-        if status not in STATUS_QUERIES:
-            raise ValidationError({"status": ["Use active or expired."]})
-        queryset = getattr(queryset, STATUS_QUERIES[status])()
-    ordering = params.get("ordering")
-    if ordering is not None:
-        if ordering != "popular":
-            raise ValidationError({"ordering": ["Use popular."]})
-        queryset = queryset.popular_urls()
-    return queryset  # type: ignore[no-any-return]
 
 
 @extend_schema_view(
     get=extend_schema(
         parameters=[
             OpenApiParameter("status", enum=list(STATUS_QUERIES)),
-            OpenApiParameter("ordering", enum=["popular"]),
+            OpenApiParameter("ordering", enum=ORDERINGS),
         ],
         responses={200: ShortURLSerializer(many=True), **ERRORS},
     ),
@@ -62,7 +42,7 @@ class ShortURLListCreateView(generics.ListCreateAPIView):  # type: ignore[type-a
     def get_queryset(self) -> QuerySet[ShortURL]:
         """One query for URLs + owners, one for all their tags (no N+1)."""
         queryset = ShortURL.objects.select_related("owner").prefetch_related("tags")
-        return _filtered(queryset, self.request.query_params)
+        return apply_filters(queryset, self.request.query_params)
 
     def perform_create(self, serializer: ShortURLSerializer) -> None:  # type: ignore[override]
         """Let the service pick the code and save the URL and its tags."""
