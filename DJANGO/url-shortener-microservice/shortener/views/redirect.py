@@ -23,7 +23,7 @@ from url_shortener.exceptions import ErrorSerializer
 def redirect_to_original(request: Request, short_code: str) -> HttpResponseRedirect:
     """302 to the saved URL (temporary, so later clicks still reach us).
 
-    An unknown code returns ``{"status_code": 404, "detail": ...}``.
+    An unknown code returns the shared JSON error with status 404.
     """
     short_url = ShortURL.objects.filter(short_code=short_code).first()
     if short_url is None:

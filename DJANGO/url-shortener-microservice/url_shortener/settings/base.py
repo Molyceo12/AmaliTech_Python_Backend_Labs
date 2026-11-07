@@ -99,8 +99,8 @@ LOGGING = {
 # drf-spectacular builds the OpenAPI schema shown at /api/docs/.
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    # JSON only, and every error as {"status_code": ..., "detail": ...}.
-    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    # JSON only, every response as {"status_code", "message", "detail"}.
+    "DEFAULT_RENDERER_CLASSES": ["url_shortener.renderers.EnvelopeJSONRenderer"],
     "EXCEPTION_HANDLER": "url_shortener.exceptions.json_exception_handler",
 }
 SPECTACULAR_SETTINGS = {

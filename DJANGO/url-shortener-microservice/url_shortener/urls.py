@@ -13,5 +13,7 @@ urlpatterns = [
 ]
 
 # JSON instead of Django's HTML pages (used when DEBUG is False).
+handler400 = "url_shortener.exceptions.bad_request"
+handler403 = "url_shortener.exceptions.permission_denied"
 handler404 = "url_shortener.exceptions.not_found"
 handler500 = "url_shortener.exceptions.server_error"
