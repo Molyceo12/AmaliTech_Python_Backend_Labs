@@ -1,14 +1,19 @@
 """Tests for the JSON errors: crashes and unknown routes."""
 
 import json
+from typing import Any
 
 import pytest
 from django.db import DatabaseError
 from django.test import Client, RequestFactory
 
-from url_shortener.exceptions import server_error
+from url_shortener.exceptions import bad_request, permission_denied, server_error
 
-SERVER_ERROR = {"status_code": 500, "detail": "Internal server error."}
+SERVER_ERROR = {
+    "status_code": 500,
+    "message": "Internal Server Error",
+    "detail": "Internal server error.",
+}
 
 
 def _crash(*args: object, **kwargs: object) -> None:
@@ -22,7 +27,7 @@ def test_crash_in_shorten_returns_json_500_and_logs(
 ) -> None:
     """A database error while saving gives a JSON 500 and a logged traceback."""
     monkeypatch.setattr("shortener.views.short_url.create_short_url", _crash)
-    response = client.post("/api/urls/", {"original_url": "https://example.com/"})
+    response = client.post("/api/v1/urls/", {"original_url": "https://example.com/"})
     assert response.status_code == 500
     assert response.json() == SERVER_ERROR
     assert "Unhandled error" in caplog.text
@@ -43,7 +48,11 @@ def test_unknown_route_returns_json_404(client: Client) -> None:
     """A path no route matches gets JSON, not Django's HTML page."""
     response = client.get("/no/such/page/")
     assert response.status_code == 404
-    assert response.json() == {"status_code": 404, "detail": "Not found."}
+    assert response.json() == {
+        "status_code": 404,
+        "message": "Not Found",
+        "detail": "Not found.",
+    }
 
 
 def test_crash_outside_a_view_returns_json_500() -> None:
@@ -51,3 +60,23 @@ def test_crash_outside_a_view_returns_json_500() -> None:
     response = server_error(RequestFactory().get("/"))
     assert response.status_code == 500
     assert json.loads(response.content) == SERVER_ERROR
+
+
+@pytest.mark.parametrize(
+    ("handler", "status", "message", "detail"),
+    [
+        (bad_request, 400, "Bad Request", "Bad request."),
+        (permission_denied, 403, "Forbidden", "Permission denied."),
+    ],
+)
+def test_django_errors_use_the_shared_shape(
+    handler: Any, status: int, message: str, detail: str
+) -> None:
+    """``handler400`` / ``handler403`` answer in the same JSON shape."""
+    response = handler(RequestFactory().get("/"), Exception())
+    assert response.status_code == status
+    assert json.loads(response.content) == {
+        "status_code": status,
+        "message": message,
+        "detail": detail,
+    }

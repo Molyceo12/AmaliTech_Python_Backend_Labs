@@ -69,13 +69,13 @@ Swagger UI: http://localhost:8000/api/docs/
 
 | Method | Route | What it does |
 |---|---|---|
-| `POST` | `/api/urls/` | creates a short URL |
+| `POST` | `/api/v1/urls/` | creates a short URL |
 | `GET` | `/<short_code>/` | redirects to the original URL |
 | `GET` | `/api/docs/` | Swagger UI |
 | `GET` | `/api/schema/` | OpenAPI schema |
 
 ```bash
-curl -X POST http://localhost:8000/api/urls/ \
+curl -X POST http://localhost:8000/api/v1/urls/ \
      -H "Content-Type: application/json" \
      -d '{"original_url": "https://www.djangoproject.com/start/"}'
 ```
@@ -83,7 +83,7 @@ curl -X POST http://localhost:8000/api/urls/ \
 ```json
 {
   "status_code": 201,
-  "message": "Short URL created.",
+  "message": "Created",
   "detail": {
     "original_url": "https://www.djangoproject.com/start/",
     "short_code": "M1gmaSk",
@@ -102,4 +102,27 @@ curl -X POST http://localhost:8000/api/urls/ \
 | `405` | wrong HTTP method |
 | `500` | server error (logged, never shown to the client) |
 
-Errors: `{"status_code": 404, "detail": "Short code not found."}`
+### Response format
+
+Every JSON response, success or error, has the same 3 keys:
+
+| Key | Value |
+|---|---|
+| `status_code` | the HTTP status, e.g. `201` |
+| `message` | its HTTP reason, e.g. `Created`, `Not Found` |
+| `detail` | the data, or the error (a field dict for `400`) |
+
+```json
+{"status_code": 404, "message": "Not Found", "detail": "Short code not found."}
+```
+
+A renderer (`url_shortener/renderers.py`) adds this wrapper to every API response,
+so new endpoints and new status codes need no extra code. Django's own error pages
+(`400`, `403`, `404`, `500`) use the same shape. Only a `302` redirect and a
+`204` (no body allowed) are not wrapped.
+
+### Versioning
+
+The API lives under `/api/v1/`, set once in `url_shortener/urls.py`. The redirect
+`/<short_code>/` is not versioned, so short links stay short and never break when
+the API version changes.
