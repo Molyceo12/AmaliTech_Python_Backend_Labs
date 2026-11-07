@@ -1,4 +1,4 @@
-"""``POST /api/urls/``: create a short URL."""
+"""``POST /api/v1/urls/``: create a short URL."""
 
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics

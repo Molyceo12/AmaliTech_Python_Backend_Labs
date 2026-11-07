@@ -4,10 +4,10 @@ from django.test import Client
 
 
 def test_schema_lists_the_shorten_endpoint(client: Client) -> None:
-    """The OpenAPI schema documents ``POST /api/urls/``."""
+    """The OpenAPI schema documents ``POST /api/v1/urls/``."""
     response = client.get("/api/schema/", {"format": "json"})
     assert response.status_code == 200
-    responses = response.json()["paths"]["/api/urls/"]["post"]["responses"]
+    responses = response.json()["paths"]["/api/v1/urls/"]["post"]["responses"]
     assert set(responses) == {"201", "400", "500"}
 
 
