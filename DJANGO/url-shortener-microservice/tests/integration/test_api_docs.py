@@ -23,7 +23,7 @@ def fixture_paths(client: Client) -> dict[str, Any]:
         ("/api/v1/urls/{short_code}/", "get", {"200", "400", "404", "500"}),
         ("/api/v1/urls/{short_code}/", "put", {"200", "400", "404", "409", "500"}),
         ("/api/v1/urls/{short_code}/", "patch", {"200", "400", "404", "409", "500"}),
-        ("/api/v1/urls/{short_code}/", "delete", {"204", "404"}),
+        ("/api/v1/urls/{short_code}/", "delete", {"200", "404"}),
         ("/{short_code}/", "get", {"302", "404", "410", "500"}),
     ],
 )

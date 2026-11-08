@@ -1,12 +1,17 @@
 """``/api/v1/urls/``: list and create; ``/api/v1/urls/<short_code>/``: one URL."""
 
+from typing import Any
+
 from django.db.models import Count, QuerySet
 from drf_spectacular.utils import (
     OpenApiParameter,
+    OpenApiResponse,
     extend_schema,
     extend_schema_view,
 )
 from rest_framework import generics
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from shortener.filters.short_url import ORDERINGS, STATUS_QUERIES, apply_filters
 from shortener.models import ShortURL
@@ -59,7 +64,12 @@ class ShortURLListCreateView(generics.ListCreateAPIView):  # type: ignore[type-a
     patch=extend_schema(
         responses={200: ShortURLDetailSerializer, 409: ErrorSerializer, **DETAIL_ERRORS}
     ),
-    delete=extend_schema(responses={204: None, 404: ErrorSerializer}),
+    delete=extend_schema(
+        responses={
+            200: OpenApiResponse(description="Short URL deleted; detail is null."),
+            404: ErrorSerializer,
+        }
+    ),
 )
 class ShortURLDetailView(generics.RetrieveUpdateDestroyAPIView):  # type: ignore[type-arg]
     """Show, change or delete one short URL, found by its code."""
@@ -69,6 +79,7 @@ class ShortURLDetailView(generics.RetrieveUpdateDestroyAPIView):  # type: ignore
         "GET": "Short URL loaded.",
         "PUT": "Short URL updated.",
         "PATCH": "Short URL updated.",
+        "DELETE": "Short URL deleted.",
     }
     lookup_field = "short_code"
     # The database counts the clicks: one query, not one per click.
@@ -77,3 +88,8 @@ class ShortURLDetailView(generics.RetrieveUpdateDestroyAPIView):  # type: ignore
         .prefetch_related("tags")
         .annotate(total_clicks=Count("clicks"))
     )
+
+    def destroy(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        """Delete, then answer 200 (not 204) so the client gets a toast message."""
+        self.perform_destroy(self.get_object())
+        return Response(None)

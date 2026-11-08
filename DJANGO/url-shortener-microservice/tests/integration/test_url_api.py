@@ -247,10 +247,16 @@ def test_patch_keeps_own_alias_and_tags_and_null_clears_it(client: Client) -> No
     assert ShortURL.objects.get().custom_alias is None
 
 
-def test_delete_returns_204(client: Client) -> None:
+def test_delete_returns_200_with_a_message(client: Client) -> None:
     """The URL is gone afterwards."""
     _url()
-    assert client.delete("/api/v1/urls/abc1234/").status_code == 204
+    response = client.delete("/api/v1/urls/abc1234/")
+    assert response.status_code == 200
+    assert response.json() == {
+        "status_code": 200,
+        "message": "Short URL deleted.",
+        "detail": None,
+    }
     assert not ShortURL.objects.exists()
 
 
