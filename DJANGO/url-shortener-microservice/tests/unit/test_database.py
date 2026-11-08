@@ -5,26 +5,39 @@ from types import ModuleType
 
 import pytest
 
+POSTGRES = "postgres://shortener:secret@db:5432/shortener"
 
-def test_no_database_url_uses_a_local_sqlite_file(
-    reload_base: ModuleType, monkeypatch: pytest.MonkeyPatch
+
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        (None, {"ENGINE": "django.db.backends.sqlite3"}),
+        (
+            POSTGRES,
+            {
+                "ENGINE": "django.db.backends.postgresql",
+                "HOST": "db",
+                "PORT": 5432,
+                "NAME": "shortener",
+                "USER": "shortener",
+                "PASSWORD": "secret",
+            },
+        ),
+    ],
+)
+def test_database_comes_from_database_url(
+    reload_base: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    url: str | None,
+    expected: dict[str, object],
 ) -> None:
-    """Without ``DATABASE_URL`` the app uses ``db.sqlite3`` in the project."""
-    monkeypatch.delenv("DATABASE_URL", raising=False)
+    """No URL: local ``db.sqlite3``. A ``postgres://`` URL is split into parts."""
+    if url is None:
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+    else:
+        monkeypatch.setenv("DATABASE_URL", url)
     importlib.reload(reload_base)
     database = reload_base.DATABASES["default"]
-    assert database["ENGINE"] == "django.db.backends.sqlite3"
-    assert str(database["NAME"]).endswith("db.sqlite3")
-
-
-def test_postgres_url_sets_every_connection_value(
-    reload_base: ModuleType, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """A ``postgres://`` URL is split into engine, host, port, name and user."""
-    monkeypatch.setenv("DATABASE_URL", "postgres://shortener:secret@db:5432/shortener")
-    importlib.reload(reload_base)
-    database = reload_base.DATABASES["default"]
-    assert database["ENGINE"] == "django.db.backends.postgresql"
-    assert (database["HOST"], database["PORT"]) == ("db", 5432)
-    assert (database["NAME"], database["USER"]) == ("shortener", "shortener")
-    assert database["PASSWORD"] == "secret"
+    assert {key: database[key] for key in expected} == expected
+    if url is None:
+        assert str(database["NAME"]).endswith("db.sqlite3")

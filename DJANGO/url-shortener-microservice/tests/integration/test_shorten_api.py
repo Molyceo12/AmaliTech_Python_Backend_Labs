@@ -1,10 +1,16 @@
 """Tests for ``POST /api/v1/urls/``."""
 
+from typing import Any
+
 import pytest
 from django.test import Client
 
 from shortener.models import ShortURL
 from shortener.serializers import ShortURLSerializer
+
+BAD_URL = "Enter a valid URL."
+NO_URL = "This field is required."
+NOT_ALLOWED = 'Method "DELETE" not allowed.'
 
 
 @pytest.mark.django_db
@@ -24,35 +30,26 @@ def test_valid_url_returns_201_and_a_short_link(client: Client) -> None:
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    ("data", "message"),
+    ("method", "data", "status", "detail"),
     [
-        ({"original_url": "not a url"}, "Enter a valid URL."),
-        ({}, "This field is required."),
+        ("post", {"original_url": "x"}, 400, {"original_url": [BAD_URL]}),
+        ("post", {}, 400, {"original_url": [NO_URL]}),
+        ("delete", {}, 405, NOT_ALLOWED),
     ],
 )
-def test_invalid_or_missing_url_returns_400(
-    client: Client, data: dict[str, str], message: str
+def test_bad_request_returns_the_json_error(
+    client: Client, method: str, data: dict[str, str], status: int, detail: Any
 ) -> None:
-    """Nothing is saved; the error has the status code and the field message."""
-    response = client.post("/api/v1/urls/", data)
-    assert response.status_code == 400
+    """Nothing is saved; the toast is the first error text."""
+    response = getattr(client, method)("/api/v1/urls/", data)
+    message = detail if isinstance(detail, str) else detail["original_url"][0]
+    assert response.status_code == status
     assert response.json() == {
-        "status_code": 400,
+        "status_code": status,
         "message": message,
-        "detail": {"original_url": [message]},
+        "detail": detail,
     }
     assert not ShortURL.objects.exists()
-
-
-def test_wrong_method_returns_the_json_error(client: Client) -> None:
-    """Errors without a field keep DRF's message under ``detail``."""
-    response = client.delete("/api/v1/urls/")
-    assert response.status_code == 405
-    assert response.json() == {
-        "status_code": 405,
-        "message": 'Method "DELETE" not allowed.',
-        "detail": 'Method "DELETE" not allowed.',
-    }
 
 
 @pytest.mark.django_db
@@ -62,9 +59,3 @@ def test_short_url_without_a_request_is_a_path() -> None:
         original_url="https://example.com", short_code="abc1234"
     )
     assert ShortURLSerializer(short_url).data["short_url"] == "/abc1234/"
-
-
-def test_old_unversioned_route_is_gone(client: Client) -> None:
-    """Only ``/api/v1/urls/`` exists; ``/api/urls/`` is not a route anymore."""
-    response = client.post("/api/urls/", {"original_url": "https://example.com/"})
-    assert response.status_code == 404

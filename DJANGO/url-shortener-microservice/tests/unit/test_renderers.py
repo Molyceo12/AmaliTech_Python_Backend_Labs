@@ -27,13 +27,9 @@ def test_any_status_code_gets_the_shared_shape(status: int, message: str) -> Non
     }
 
 
-def test_no_content_stays_empty() -> None:
-    """``204`` has no body, as HTTP requires."""
+def test_no_content_or_no_response_is_not_wrapped() -> None:
+    """``204`` stays empty (HTTP); outside a view the data is left as is."""
     assert _render(None, 204) == b""
-
-
-def test_without_a_response_the_data_is_not_wrapped() -> None:
-    """Rendering outside a view (no response) leaves the data as is."""
     assert json.loads(EnvelopeJSONRenderer().render({"x": 1})) == {"x": 1}
 
 

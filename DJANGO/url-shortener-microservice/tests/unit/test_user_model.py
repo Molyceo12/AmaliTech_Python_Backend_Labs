@@ -15,14 +15,10 @@ def _user(email: str = "ana@example.com", **fields: object) -> User:
     )
 
 
-def test_project_uses_the_custom_user() -> None:
-    """``AUTH_USER_MODEL`` points Django at ``accounts.User``."""
-    assert get_user_model() is User
-
-
 @pytest.mark.django_db
-def test_new_user_is_free_and_not_premium() -> None:
-    """Defaults: tier ``free``, ``is_premium`` False."""
+def test_project_uses_the_custom_user_with_free_default() -> None:
+    """``AUTH_USER_MODEL`` is ``accounts.User``; a new user is free, not premium."""
+    assert get_user_model() is User
     user = _user()
     assert (user.tier, user.is_premium) == (User.Tier.FREE, False)
 
@@ -37,19 +33,15 @@ def test_email_is_saved_lowercase_and_unique() -> None:
 
 @pytest.mark.django_db
 def test_is_premium_follows_the_tier() -> None:
-    """``premium`` turns ``is_premium`` on; back to ``free`` turns it off."""
+    """``premium`` turns ``is_premium`` on, ``free`` off; ``admin`` gives no rights."""
     user = _user(tier=User.Tier.PREMIUM)
     assert user.is_premium is True
     user.tier = User.Tier.FREE
     user.save()
     assert user.is_premium is False
-
-
-@pytest.mark.django_db
-def test_admin_tier_gives_no_admin_rights() -> None:
-    """``tier=admin`` is a business tier; ``is_staff`` stays False."""
-    user = _user(tier=User.Tier.ADMIN)
-    assert (user.is_staff, user.is_superuser, user.is_premium) == (False, False, False)
+    # tier=admin is a business tier: no admin rights, not premium.
+    admin = _user("boss@example.com", tier=User.Tier.ADMIN)
+    assert (admin.is_staff, admin.is_superuser, admin.is_premium) == (False,) * 3
 
 
 @pytest.mark.django_db

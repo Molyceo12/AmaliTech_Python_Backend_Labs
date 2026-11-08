@@ -22,26 +22,28 @@ def _crash(*args: object, **kwargs: object) -> None:
 
 
 @pytest.mark.django_db
-def test_crash_in_shorten_returns_json_500_and_logs(
-    client: Client, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+@pytest.mark.parametrize(
+    ("target", "call"),
+    [
+        ("shortener.views.short_url.create_short_url", ("post", "/api/v1/urls/")),
+        ("shortener.models.ShortURL.objects.filter", ("get", "/abc1234/")),
+    ],
+)
+def test_crash_returns_json_500_and_logs(
+    client: Client,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    target: str,
+    call: tuple[str, str],
 ) -> None:
-    """A database error while saving gives a JSON 500 and a logged traceback."""
-    monkeypatch.setattr("shortener.views.short_url.create_short_url", _crash)
-    response = client.post("/api/v1/urls/", {"original_url": "https://example.com/"})
+    """A database error in the API or the redirect → JSON 500 + logged traceback."""
+    monkeypatch.setattr(target, _crash)
+    method, path = call
+    response = getattr(client, method)(path, {"original_url": "https://example.com/"})
     assert response.status_code == 500
     assert response.json() == SERVER_ERROR
     assert "Unhandled error" in caplog.text
     assert "database is down" in caplog.text
-
-
-def test_crash_in_redirect_returns_json_500(
-    client: Client, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """A database error while looking up a code gives a JSON 500."""
-    monkeypatch.setattr("shortener.models.ShortURL.objects.filter", _crash)
-    response = client.get("/abc1234/")
-    assert response.status_code == 500
-    assert response.json() == SERVER_ERROR
 
 
 def test_unknown_route_returns_json_404(client: Client) -> None:
@@ -55,28 +57,22 @@ def test_unknown_route_returns_json_404(client: Client) -> None:
     }
 
 
-def test_crash_outside_a_view_returns_json_500() -> None:
-    """``handler500`` answers with the same JSON body."""
-    response = server_error(RequestFactory().get("/"))
-    assert response.status_code == 500
-    assert json.loads(response.content) == SERVER_ERROR
-
-
 @pytest.mark.parametrize(
-    ("handler", "status", "message", "detail"),
+    ("handler", "status", "text"),
     [
-        (bad_request, 400, "Bad request.", "Bad request."),
-        (permission_denied, 403, "Permission denied.", "Permission denied."),
+        (bad_request, 400, "Bad request."),
+        (permission_denied, 403, "Permission denied."),
+        (lambda request, _: server_error(request), 500, "Internal server error."),
     ],
 )
 def test_django_errors_use_the_shared_shape(
-    handler: Any, status: int, message: str, detail: str
+    handler: Any, status: int, text: str
 ) -> None:
-    """``handler400`` / ``handler403`` answer in the same JSON shape."""
+    """``handler400`` / ``403`` / ``500`` answer in the same JSON shape."""
     response = handler(RequestFactory().get("/"), Exception())
     assert response.status_code == status
     assert json.loads(response.content) == {
         "status_code": status,
-        "message": message,
-        "detail": detail,
+        "message": text,
+        "detail": text,
     }

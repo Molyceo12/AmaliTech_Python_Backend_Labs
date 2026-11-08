@@ -6,16 +6,11 @@ from shortener.models import ShortURL
 from shortener.services import short_codes
 
 
-def test_codes_are_seven_letters_or_digits() -> None:
-    """A new code has the default length and only letters and digits."""
-    code = short_codes.generate_short_code()
-    assert len(code) == short_codes.CODE_LENGTH
-    assert code.isalnum()
-
-
 @pytest.mark.django_db
-def test_create_short_url_saves_the_url() -> None:
-    """The URL is stored under a new code."""
+def test_create_short_url_saves_under_a_new_code() -> None:
+    """The URL is stored under a 7-character letters-and-digits code."""
+    code = short_codes.generate_short_code()
+    assert (len(code), code.isalnum()) == (short_codes.CODE_LENGTH, True)
     short_url = short_codes.create_short_url("https://example.com/a/long/path")
     saved = ShortURL.objects.get(short_code=short_url.short_code)
     assert saved.original_url == "https://example.com/a/long/path"

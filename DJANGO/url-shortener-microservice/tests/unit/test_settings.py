@@ -10,14 +10,10 @@ import pytest
 from django.conf import settings
 
 
-def test_apps_are_installed() -> None:
-    """DRF and both project apps are registered."""
+def test_apps_are_installed_and_debug_is_dev_only() -> None:
+    """DRF and both apps are registered; ``dev`` turns debug on, ``prod`` off."""
     for app in ("rest_framework", "shortener", "accounts"):
         assert app in settings.INSTALLED_APPS
-
-
-def test_dev_shows_debug_pages_and_prod_does_not() -> None:
-    """``dev`` turns debug on; ``prod`` keeps it off."""
     dev = importlib.import_module("url_shortener.settings.dev")
     prod = importlib.import_module("url_shortener.settings.prod")
     assert dev.DEBUG is True
@@ -45,14 +41,10 @@ def test_missing_secret_key_stops_the_app(
         importlib.reload(reload_base)
 
 
-def test_wsgi_and_asgi_expose_an_application() -> None:
-    """Gunicorn and async servers find ``application`` in both modules."""
+def test_entry_points_work(monkeypatch: pytest.MonkeyPatch) -> None:
+    """WSGI and ASGI expose ``application``; ``manage.py check`` runs."""
     for name in ("url_shortener.wsgi", "url_shortener.asgi"):
         assert callable(importlib.import_module(name).application)
-
-
-def test_manage_py_runs_a_command(monkeypatch: pytest.MonkeyPatch) -> None:
-    """``manage.py check`` runs without errors."""
     manage = importlib.import_module("manage")
     monkeypatch.setattr(sys, "argv", ["manage.py", "check"])
     manage.main()
