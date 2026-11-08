@@ -97,11 +97,17 @@ docker compose exec web tail -f logs/app.log        # the log file
 
 List filters: `?status=active`, `?status=expired`, `?ordering=popular` (can be combined).
 
-```bash
-curl -X POST http://localhost:8000/api/v1/urls/ \
-     -H "Content-Type: application/json" \
-     -d '{"original_url": "https://www.djangoproject.com/start/", "custom_alias": "django", "tags": ["docs"]}'
+### Requests and responses
+
+`...` stands for the other URL fields shown in **Create**.
+
+**Create** `POST /api/v1/urls/`
+
+```json
+{"original_url": "https://www.djangoproject.com/start/", "custom_alias": "django", "tags": ["docs"]}
 ```
+
+`201`:
 
 ```json
 {
@@ -125,16 +131,67 @@ curl -X POST http://localhost:8000/api/v1/urls/ \
 }
 ```
 
-`owner` is read-only and stays empty until login arrives (Module 7).
+Only `original_url` is required. `owner`, `short_code`, `click_count` and the dates are
+read-only (`owner` stays empty until login, Module 7).
 
-The detail (`GET /api/v1/urls/<short_code>/`) adds, inside `detail`:
+**List** `GET /api/v1/urls/?status=active&ordering=popular&page=1`
+
+`200`:
 
 ```json
-"total_clicks": 4,
-"clicks_by_country": [{"country": "Rwanda", "total": 2}, {"country": "", "total": 1}]
+{
+  "status_code": 200,
+  "message": "Short URLs loaded.",
+  "detail": {
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [{"short_code": "M1gmaSk", "original_url": "https://www.djangoproject.com/start/", "...": "..."}]
+  }
+}
+```
+
+**Detail** `GET /api/v1/urls/M1gmaSk/`
+
+`200`:
+
+```json
+{
+  "status_code": 200,
+  "message": "Short URL loaded.",
+  "detail": {
+    "short_code": "M1gmaSk",
+    "...": "...",
+    "total_clicks": 3,
+    "clicks_by_country": [{"country": "Rwanda", "total": 2}, {"country": "", "total": 1}]
+  }
+}
 ```
 
 An empty `country` means unknown (no geo lookup yet).
+
+**Update** `PUT /api/v1/urls/M1gmaSk/` (all fields) or `PATCH` (only what changes)
+
+```json
+{"title": "Django start", "is_active": false}
+```
+
+`200`:
+
+```json
+{"status_code": 200, "message": "Short URL updated.", "detail": {"title": "Django start", "is_active": false, "...": "..."}}
+```
+
+**Delete** `DELETE /api/v1/urls/M1gmaSk/`: `204`, no body.
+
+**Redirect** `GET /M1gmaSk/` or `GET /django/`: `302` with `Location: https://www.djangoproject.com/start/`
+(no JSON body). A click is saved.
+
+**Error** example, `POST /api/v1/urls/` with `{"original_url": "not a url"}`:
+
+```json
+{"status_code": 400, "message": "Enter a valid URL.", "detail": {"original_url": ["Enter a valid URL."]}}
+```
 
 | Status | When |
 |---|---|
