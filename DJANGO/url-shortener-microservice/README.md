@@ -65,6 +65,14 @@ python -m poetry run python -m pre_commit run --all-files   # pre-commit hooks: 
 
 Swagger UI: http://localhost:8000/api/docs/
 
+Logs go to the console and to `logs/app.log` (5 MB per file, last 3 kept;
+gitignored). In Docker the file lives in the `app_logs` volume:
+
+```bash
+docker compose logs -f web                          # console logs
+docker compose exec web tail -f logs/app.log        # the log file
+```
+
 ## Users
 
 `accounts.User` (`AUTH_USER_MODEL`) extends Django's `AbstractUser`:

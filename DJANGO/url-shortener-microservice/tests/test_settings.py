@@ -1,6 +1,7 @@
 """Tests for the project settings and its entry points."""
 
 import importlib
+import logging
 import sys
 from types import ModuleType
 
@@ -64,3 +65,10 @@ def test_admin_page_loads(client: Client) -> None:
     response = client.get("/admin/", follow=True)
     assert response.status_code == 200
     assert response.redirect_chain[-1][0].startswith("/admin/login/")
+
+
+def test_logs_are_also_saved_to_a_file() -> None:
+    """Every logger writes to ``logs/app.log`` too, not only the console."""
+    logging.getLogger("tests").warning("log file check")
+    log_file = settings.LOG_DIR / "app.log"
+    assert "WARNING tests: log file check" in log_file.read_text(encoding="utf-8")
