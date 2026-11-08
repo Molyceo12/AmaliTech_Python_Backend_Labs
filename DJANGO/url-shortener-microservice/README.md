@@ -12,18 +12,18 @@ original URL.
 
 ```mermaid
 graph TD
-    Client((Client)) -->|HTTP| Views
+    Client((Client)) -->|HTTP requests| Web(URL Shortener API<br/>Gunicorn + Django 8000)
 
-    subgraph Docker["Docker Compose"]
-        subgraph Web["web: Gunicorn + Django"]
-            Views(Views + serializers) --> Services(Services)
-            Services --> Models(Models: User, ShortURL, Tag, Click)
-        end
-        Models --> DB[(PostgreSQL)]
+    subgraph "Infrastructure"
+        Web -.-> DB[(PostgreSQL<br/>5432)]
     end
-
-    Views -->|JSON / 302| Client
 ```
+
+### Services overview
+
+- **Web (`web`)**: Django REST API for short URLs, tags and click stats, plus the
+  `/<code>/` redirect, served by Gunicorn on port `8000`.
+- **PostgreSQL (`db`)**: stores users, short URLs, tags and clicks (`postgres_data` volume).
 
 ## Setup
 
