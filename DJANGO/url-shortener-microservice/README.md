@@ -12,18 +12,43 @@ original URL.
 
 ```mermaid
 graph TD
-    Client((Client)) -->|HTTP requests| Web(URL Shortener API<br/>Gunicorn + Django 8000)
+    Client((Client)) -->|HTTP requests| Gunicorn(Gunicorn<br/>8000)
+    PgAdmin((pgAdmin)) -->|5433| DB
+
+    subgraph Web["web container"]
+        Gunicorn --> Routes{URL routes}
+        Routes -->|/api/v1/urls/| API(URL API<br/>list, create, detail, update, delete)
+        Routes -->|/code/| Redirect(Redirect<br/>302 + click)
+        Routes -->|/api/docs/| Docs(Swagger UI)
+        Routes -->|/admin/| Admin(Django admin)
+        API --> Logic(Serializers, filters, services)
+        Redirect --> Logic
+        Logic --> Models(Models: User, ShortURL, Tag, Click)
+        API --> Renderer(Renderer<br/>status_code, message, detail)
+        Logs[(app_logs volume<br/>logs/app.log)]
+    end
 
     subgraph "Infrastructure"
-        Web -.-> DB[(PostgreSQL<br/>5432)]
+        DB[(PostgreSQL<br/>5432<br/>postgres_data volume)]
     end
+
+    Models -.-> DB
+    Renderer -->|JSON| Client
+    Redirect -->|302 / 404 / 410| Client
+    Gunicorn -.-> Logs
 ```
 
 ### Services overview
 
-- **Web (`web`)**: Django REST API for short URLs, tags and click stats, plus the
-  `/<code>/` redirect, served by Gunicorn on port `8000`.
-- **PostgreSQL (`db`)**: stores users, short URLs, tags and clicks (`postgres_data` volume).
+- **Web (`web`)**: Gunicorn runs Django on port `8000`.
+  - **URL API** (`/api/v1/urls/`): create, list (filters, 20 per page), detail with
+    click stats, update and delete short URLs.
+  - **Redirect** (`/<code or alias>/`): sends the visitor on (`302`) and saves a click.
+  - **Swagger** (`/api/docs/`) and **Django admin** (`/admin/`).
+  - **Renderer**: gives every JSON response the same `{status_code, message, detail}` shape.
+  - **Logs**: console and `logs/app.log`, kept in the `app_logs` volume.
+- **PostgreSQL (`db`)**: stores users, short URLs, tags and clicks in the
+  `postgres_data` volume; open it from your PC on port `5433` (e.g. pgAdmin).
 
 ## Setup
 
