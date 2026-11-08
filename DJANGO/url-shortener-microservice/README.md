@@ -60,6 +60,8 @@ Tests and code checks:
 
 ```bash
 python -m poetry run python -m pytest --cov                 # run the tests with coverage
+python -m poetry run python -m pytest tests/unit          # unit tests only
+python -m poetry run python -m pytest tests/integration   # API + redirect tests only
 python -m poetry run python -m pre_commit run --all-files   # pre-commit hooks: ruff, Black, pylint, mypy
 ```
 

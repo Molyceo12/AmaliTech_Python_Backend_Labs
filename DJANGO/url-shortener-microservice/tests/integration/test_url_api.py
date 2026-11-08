@@ -277,3 +277,11 @@ def test_unknown_code_returns_404(client: Client, method: str) -> None:
 def test_old_unversioned_route_is_gone(client: Client) -> None:
     """``/api/urls/`` moved to ``/api/v1/urls/``."""
     assert client.get("/api/urls/").status_code == 404
+
+
+def test_success_message_comes_from_the_view(client: Client) -> None:
+    """A view's ``success_messages`` gives the toast; the error stays its own."""
+    body = client.get("/api/v1/urls/").json()
+    assert body["message"] == "Short URLs loaded."
+    body = client.get("/api/v1/urls/?status=old").json()
+    assert body["message"] == "Use active or expired."

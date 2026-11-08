@@ -77,3 +77,11 @@ def test_admin_is_not_taken_as_a_short_code(client: Client) -> None:
     """``admin/`` still reaches the admin, not the redirect."""
     assert client.get("/admin/").status_code == 302
     assert "/admin/login/" in client.get("/admin/")["Location"]
+
+
+@pytest.mark.django_db
+def test_admin_page_loads(client: Client) -> None:
+    """The admin redirects to its login page, which loads."""
+    response = client.get("/admin/", follow=True)
+    assert response.status_code == 200
+    assert response.redirect_chain[-1][0].startswith("/admin/login/")

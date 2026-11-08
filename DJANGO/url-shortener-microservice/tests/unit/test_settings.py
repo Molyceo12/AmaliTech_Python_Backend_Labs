@@ -8,7 +8,6 @@ from types import ModuleType
 import decouple
 import pytest
 from django.conf import settings
-from django.test import Client
 
 
 def test_apps_are_installed() -> None:
@@ -57,14 +56,6 @@ def test_manage_py_runs_a_command(monkeypatch: pytest.MonkeyPatch) -> None:
     manage = importlib.import_module("manage")
     monkeypatch.setattr(sys, "argv", ["manage.py", "check"])
     manage.main()
-
-
-@pytest.mark.django_db
-def test_admin_page_loads(client: Client) -> None:
-    """The admin redirects to its login page, which loads."""
-    response = client.get("/admin/", follow=True)
-    assert response.status_code == 200
-    assert response.redirect_chain[-1][0].startswith("/admin/login/")
 
 
 def test_logs_are_also_saved_to_a_file() -> None:
