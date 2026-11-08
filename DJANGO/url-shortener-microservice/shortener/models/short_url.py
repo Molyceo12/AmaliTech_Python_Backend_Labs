@@ -30,9 +30,10 @@ class ShortURL(models.Model):
     )
     is_active = models.BooleanField(default=True)
     expires_at = models.DateTimeField(null=True, blank=True)
-    title = models.CharField(max_length=200, blank=True)
-    description = models.TextField(blank=True)
-    favicon = models.URLField(max_length=2048, blank=True)
+    # The brief asks for nullable CharFields (Django's default would be "").
+    title = models.CharField(max_length=200, null=True, blank=True)  # noqa: DJ001
+    description = models.CharField(max_length=500, null=True, blank=True)  # noqa: DJ001
+    favicon = models.CharField(max_length=2048, null=True, blank=True)  # noqa: DJ001
     click_count = models.PositiveIntegerField(default=0)
     tags = models.ManyToManyField(Tag, blank=True, related_name="short_urls")
     created_at = models.DateTimeField(auto_now_add=True)
