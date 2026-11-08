@@ -12,25 +12,37 @@ original URL.
 
 ```mermaid
 graph TD
-    Client((Client)) -->|HTTP request| Views
+    Client((Client)) -->|"/api/v1/urls/"| API
+    Client -->|"/{code or alias}/"| Redirect
 
     subgraph Docker["Docker Compose"]
-        subgraph Web["web container"]
-            subgraph Gunicorn["Gunicorn 8000"]
-                Views(Django Views)
+        subgraph Web["web container: Gunicorn :8000"]
+            API(URL API views)
+            Redirect(Redirect view)
+            API --> Serializers(Serializers: validate, shape JSON)
+            API --> Filters("Filters: ?status, ?ordering")
+            API --> Create(Service: create_short_url)
+            Redirect --> Record(Service: record_click)
+            Renderer(Renderer: status_code, message, detail)
+            subgraph Models["Models + custom queries"]
+                User(User) -->|owns| ShortURL(ShortURL)
+                ShortURL -->|has| Click(Click)
+                ShortURL <-->|tagged| Tag(Tag)
             end
-            Service(Short Code Service)
+            Serializers --> Models
+            Filters --> Models
+            Create --> Models
+            Record --> Models
         end
-
         subgraph Db["db container"]
-            DB[(PostgreSQL 5432<br/>postgres_data volume)]
+            DB[(PostgreSQL :5432<br/>postgres_data volume)]
         end
     end
 
-    Views -->|create| Service
-    Service --> DB
-    Views -.->|redirect| DB
-    Views -->|201 / 302 / JSON errors| Client
+    Models --> DB
+    API --> Renderer
+    Renderer -->|"JSON 200 / 201 / 4xx / 500"| Client
+    Redirect -->|"302, 404, 410"| Client
 ```
 
 ## Setup
