@@ -25,7 +25,7 @@ def test_code_or_alias_redirects_and_records_a_click(client: Client, path: str) 
     response = client.get(path, HTTP_USER_AGENT="pytest", HTTP_REFERER="https://a.io/")
     assert response.status_code == 302
     assert response["Location"] == "https://example.com/long"
-    click = Click.objects.get(short_url=url)
+    click = Click.objects.get(url=url)
     assert (click.ip_address, click.user_agent, click.referrer) == (
         "127.0.0.1",
         "pytest",

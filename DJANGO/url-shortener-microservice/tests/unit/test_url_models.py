@@ -55,9 +55,9 @@ def test_url_has_many_tags_and_tag_has_many_urls() -> None:
 
 
 def test_deleting_a_user_deletes_their_urls_and_clicks() -> None:
-    """``owner`` and ``Click.short_url`` both use ``CASCADE``."""
+    """``owner`` and ``Click.url`` both use ``CASCADE``."""
     user = User.objects.create_user(email="ana@example.com", username="ana")
-    Click.objects.create(short_url=_url(owner=user), ip_address="203.0.113.5")
+    Click.objects.create(url=_url(owner=user), ip_address="203.0.113.5")
     user.delete()
     assert not ShortURL.objects.exists()
     assert not Click.objects.exists()
@@ -86,7 +86,7 @@ def test_popular_urls_most_clicked_first_and_chainable() -> None:
 def test_str_of_each_model() -> None:
     """``__str__`` shows something readable."""
     url = _url()
-    click = Click.objects.create(short_url=url)
+    click = Click.objects.create(url=url)
     assert str(url) == "abc1234 -> https://example.com/"
     assert str(Tag.objects.create(name="docs")) == "docs"
     assert str(click).startswith(f"{url.pk} at ")

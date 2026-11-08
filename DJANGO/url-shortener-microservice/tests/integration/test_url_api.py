@@ -188,7 +188,7 @@ def test_detail_shows_click_totals(
     """``total_clicks`` and per-country totals (most first; ``""`` = unknown)."""
     url = _url()
     for country in countries:
-        Click.objects.create(short_url=url, country=country)
+        Click.objects.create(url=url, country=country)
     response = client.get("/api/v1/urls/abc1234/")
     detail = response.json()["detail"]
     assert (response.status_code, detail["total_clicks"]) == (200, len(countries))
@@ -204,10 +204,10 @@ def test_detail_query_count_does_not_grow_with_clicks(client: Client) -> None:
             client.get("/api/v1/urls/abc1234/")
         return len(context)
 
-    Click.objects.create(short_url=url, country="Ghana")
+    Click.objects.create(url=url, country="Ghana")
     before = queries()
     for country in ["Kenya", "Rwanda", "Rwanda"]:
-        Click.objects.create(short_url=url, country=country)
+        Click.objects.create(url=url, country=country)
     assert queries() == before
 
 

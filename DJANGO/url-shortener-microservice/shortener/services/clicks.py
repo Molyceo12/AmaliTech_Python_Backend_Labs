@@ -13,12 +13,12 @@ def record_click(short_url: ShortURL, request: Request) -> None:
 
     The IP comes from ``REMOTE_ADDR`` only: ``X-Forwarded-For`` is sent by the
     client, so it can be faked. ``F()`` adds 1 in the database, so two clicks
-    at the same moment both count. City and country stay empty (no geo lookup).
+    at the same moment both count. City and country stay null (no geo lookup).
     """
     Click.objects.create(
-        short_url=short_url,
+        url=short_url,
         ip_address=request.META.get("REMOTE_ADDR") or None,
         user_agent=request.META.get("HTTP_USER_AGENT", ""),
-        referrer=request.META.get("HTTP_REFERER", "")[:2048],
+        referrer=(request.META.get("HTTP_REFERER") or "")[:2048] or None,
     )
     ShortURL.objects.filter(pk=short_url.pk).update(click_count=F("click_count") + 1)

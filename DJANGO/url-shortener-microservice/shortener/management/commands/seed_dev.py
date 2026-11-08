@@ -142,7 +142,7 @@ def _add_clicks(url: ShortURL, number: int) -> int:
     """Save ``number`` clicks from the sample visitors."""
     clicks = [
         Click(
-            short_url=url,
+            url=url,
             ip_address=ip,
             city=city,
             country=country,
