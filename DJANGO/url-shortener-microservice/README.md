@@ -49,7 +49,9 @@ cp .env.example .env              # SECRET_KEY, ALLOWED_HOSTS, POSTGRES_*
 With Docker (Gunicorn + PostgreSQL 16):
 
 ```bash
-docker compose up --build -d
+docker compose up --build -d       # start (Gunicorn + PostgreSQL)
+docker compose run --rm seed       # add the sample data (seeders)
+docker compose down -v             # stop and delete the database (fresh start)
 ```
 
 Without Docker (SQLite):
@@ -75,7 +77,6 @@ Admin user and sample data (seeders, dev only):
 ```bash
 python -m poetry run python manage.py createsuperuser   # email, username, password
 python -m poetry run python manage.py seed_dev          # 1 user, tags, 5 URLs, clicks
-docker compose run --rm seed                            # same, into the Docker database
 ```
 
 Swagger UI: http://localhost:8000/api/docs/
