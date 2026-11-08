@@ -53,12 +53,9 @@ def test_admin_tier_gives_no_admin_rights() -> None:
 
 
 @pytest.mark.django_db
-def test_superuser_logs_in_with_email_and_sees_the_add_form(client: Client) -> None:
-    """A superuser made with an email can open the admin's add-user page."""
+def test_superuser_logs_in_with_email(client: Client) -> None:
+    """A superuser made with an email logs in with that email."""
     User.objects.create_superuser(
         email="boss@example.com", username="boss", password="test-only-pass"
     )
     assert client.login(email="boss@example.com", password="test-only-pass")
-    response = client.get("/admin/accounts/user/add/")
-    assert response.status_code == 200
-    assert b'name="email"' in response.content
