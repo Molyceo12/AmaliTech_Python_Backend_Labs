@@ -3,6 +3,7 @@
 import json
 
 import pytest
+from django.test import Client
 from rest_framework.response import Response
 
 from url_shortener.renderers import EnvelopeJSONRenderer
@@ -35,3 +36,25 @@ def test_no_content_stays_empty() -> None:
 def test_without_a_response_the_data_is_not_wrapped() -> None:
     """Rendering outside a view (no response) leaves the data as is."""
     assert json.loads(EnvelopeJSONRenderer().render({"x": 1})) == {"x": 1}
+
+
+@pytest.mark.parametrize(
+    ("detail", "message"),
+    [
+        ("Short code not found.", "Short code not found."),
+        ({"original_url": ["Enter a valid URL."]}, "Enter a valid URL."),
+        ({}, "Bad Request"),
+    ],
+)
+def test_error_message_is_the_first_error_text(detail: object, message: str) -> None:
+    """An error toast shows the error itself; no text → the HTTP reason."""
+    assert json.loads(_render(detail, 400))["message"] == message
+
+
+@pytest.mark.django_db
+def test_success_message_comes_from_the_view(client: Client) -> None:
+    """A view's ``success_messages`` gives the toast; the error stays its own."""
+    body = client.get("/api/v1/urls/").json()
+    assert body["message"] == "Short URLs loaded."
+    body = client.get("/api/v1/urls/?status=old").json()
+    assert body["message"] == "Use active or expired."

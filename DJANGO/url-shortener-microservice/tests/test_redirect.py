@@ -51,7 +51,7 @@ def test_unknown_or_inactive_returns_404(client: Client, code: str) -> None:
     assert response.status_code == 404
     assert response.json() == {
         "status_code": 404,
-        "message": "Not Found",
+        "message": "Short code not found.",
         "detail": "Short code not found.",
     }
     assert not Click.objects.exists()
@@ -66,7 +66,7 @@ def test_expired_returns_410(client: Client) -> None:
     assert response.status_code == 410
     assert response.json() == {
         "status_code": 410,
-        "message": "Gone",
+        "message": "This short URL has expired.",
         "detail": "This short URL has expired.",
     }
     assert not Click.objects.exists()

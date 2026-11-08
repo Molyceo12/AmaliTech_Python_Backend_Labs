@@ -78,7 +78,7 @@ def test_alias_used_as_alias_or_code_returns_409(client: Client, taken: str) -> 
     assert response.status_code == 409
     assert response.json() == {
         "status_code": 409,
-        "message": "Conflict",
+        "message": "This alias is already taken.",
         "detail": "This alias is already taken.",
     }
 

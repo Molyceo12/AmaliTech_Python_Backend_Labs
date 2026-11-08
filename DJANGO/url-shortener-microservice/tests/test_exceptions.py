@@ -11,7 +11,7 @@ from url_shortener.exceptions import bad_request, permission_denied, server_erro
 
 SERVER_ERROR = {
     "status_code": 500,
-    "message": "Internal Server Error",
+    "message": "Internal server error.",
     "detail": "Internal server error.",
 }
 
@@ -50,7 +50,7 @@ def test_unknown_route_returns_json_404(client: Client) -> None:
     assert response.status_code == 404
     assert response.json() == {
         "status_code": 404,
-        "message": "Not Found",
+        "message": "Not found.",
         "detail": "Not found.",
     }
 
@@ -65,8 +65,8 @@ def test_crash_outside_a_view_returns_json_500() -> None:
 @pytest.mark.parametrize(
     ("handler", "status", "message", "detail"),
     [
-        (bad_request, 400, "Bad Request", "Bad request."),
-        (permission_denied, 403, "Forbidden", "Permission denied."),
+        (bad_request, 400, "Bad request.", "Bad request."),
+        (permission_denied, 403, "Permission denied.", "Permission denied."),
     ],
 )
 def test_django_errors_use_the_shared_shape(

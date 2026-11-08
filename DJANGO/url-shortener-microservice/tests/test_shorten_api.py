@@ -15,7 +15,7 @@ def test_valid_url_returns_201_and_a_short_link(client: Client) -> None:
     )
     assert response.status_code == 201
     body = response.json()
-    assert (body["status_code"], body["message"]) == (201, "Created")
+    assert (body["status_code"], body["message"]) == (201, "Short URL created.")
     detail = body["detail"]
     assert (detail["tags"], detail["owner"], detail["is_active"]) == ([], None, True)
     assert ShortURL.objects.get(short_code=detail["short_code"])
@@ -38,7 +38,7 @@ def test_invalid_or_missing_url_returns_400(
     assert response.status_code == 400
     assert response.json() == {
         "status_code": 400,
-        "message": "Bad Request",
+        "message": message,
         "detail": {"original_url": [message]},
     }
     assert not ShortURL.objects.exists()
@@ -50,7 +50,7 @@ def test_wrong_method_returns_the_json_error(client: Client) -> None:
     assert response.status_code == 405
     assert response.json() == {
         "status_code": 405,
-        "message": "Method Not Allowed",
+        "message": 'Method "DELETE" not allowed.',
         "detail": 'Method "DELETE" not allowed.',
     }
 

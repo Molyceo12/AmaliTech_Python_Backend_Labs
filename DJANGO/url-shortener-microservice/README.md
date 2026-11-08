@@ -192,7 +192,7 @@ curl -X POST http://localhost:8000/api/v1/urls/ \
 ```json
 {
   "status_code": 201,
-  "message": "Created",
+  "message": "Short URL created.",
   "detail": {
     "original_url": "https://www.djangoproject.com/start/",
     "short_code": "M1gmaSk",
@@ -242,12 +242,18 @@ Every JSON response, success or error, has the same 3 keys:
 | Key | Value |
 |---|---|
 | `status_code` | the HTTP status, e.g. `201` |
-| `message` | its HTTP reason, e.g. `Created`, `Not Found` |
+| `message` | short text to show as a toast, e.g. `Short URL created.`, `Short code not found.` |
 | `detail` | the data, or the error (a field dict for `400`) |
 
 ```json
-{"status_code": 404, "message": "Not Found", "detail": "Short code not found."}
+{"status_code": 404, "message": "Short code not found.", "detail": "Short code not found."}
 ```
+
+Where `message` comes from:
+
+1. success: the view's `success_messages` for the method (e.g. `POST` → `Short URL created.`)
+2. error: the first error text (e.g. `Enter a valid URL.`)
+3. otherwise: the HTTP reason (e.g. `OK`)
 
 A renderer (`url_shortener/renderers.py`) adds this wrapper to every API response,
 so new endpoints and new status codes need no extra code. Django's own error pages

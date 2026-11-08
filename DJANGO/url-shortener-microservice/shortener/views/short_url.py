@@ -38,6 +38,7 @@ class ShortURLListCreateView(generics.ListCreateAPIView):  # type: ignore[type-a
     """List short URLs (20 per page), or save a long URL under a new code."""
 
     serializer_class = ShortURLSerializer
+    success_messages = {"GET": "Short URLs loaded.", "POST": "Short URL created."}
 
     def get_queryset(self) -> QuerySet[ShortURL]:
         """One query for URLs + owners, one for all their tags (no N+1)."""
@@ -64,6 +65,11 @@ class ShortURLDetailView(generics.RetrieveUpdateDestroyAPIView):  # type: ignore
     """Show, change or delete one short URL, found by its code."""
 
     serializer_class = ShortURLDetailSerializer
+    success_messages = {
+        "GET": "Short URL loaded.",
+        "PUT": "Short URL updated.",
+        "PATCH": "Short URL updated.",
+    }
     lookup_field = "short_code"
     # The database counts the clicks: one query, not one per click.
     queryset = (
