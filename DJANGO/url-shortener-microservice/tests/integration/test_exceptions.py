@@ -2,6 +2,7 @@
 
 import json
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from django.db import DatabaseError
@@ -14,11 +15,6 @@ SERVER_ERROR = {
     "message": "Internal server error.",
     "detail": "Internal server error.",
 }
-
-
-def _crash(*args: object, **kwargs: object) -> None:
-    """Stand-in for a database call that fails."""
-    raise DatabaseError("database is down")
 
 
 @pytest.mark.django_db
@@ -37,9 +33,12 @@ def test_crash_returns_json_500_and_logs(
     call: tuple[str, str],
 ) -> None:
     """A database error in the API or the redirect → JSON 500 + logged traceback."""
-    monkeypatch.setattr(target, _crash)
+    # A fake database call that fails, and remembers it was called.
+    crash = MagicMock(side_effect=DatabaseError("database is down"))
+    monkeypatch.setattr(target, crash)
     method, path = call
     response = getattr(client, method)(path, {"original_url": "https://example.com/"})
+    crash.assert_called_once()
     assert response.status_code == 500
     assert response.json() == SERVER_ERROR
     assert "Unhandled error" in caplog.text
