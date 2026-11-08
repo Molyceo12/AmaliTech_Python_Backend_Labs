@@ -35,7 +35,8 @@ def _post(client: Client, **data: Any) -> Any:
 
 
 def test_create_with_alias_expiry_tags_and_details(client: Client) -> None:
-    """Every optional field is saved; tag names are trimmed and lowercased."""
+    """Every optional field is saved; tags are trimmed, lowercased and reused."""
+    Tag.objects.create(name="python")
     response = _post(
         client,
         custom_alias="docs",
@@ -52,12 +53,6 @@ def test_create_with_alias_expiry_tags_and_details(client: Client) -> None:
         True,
     )
     assert response.json()["detail"]["tags"] == ["python", "web"]
-
-
-def test_existing_tag_is_reused(client: Client) -> None:
-    """A tag name already saved is linked, not created again."""
-    Tag.objects.create(name="python")
-    _post(client, tags=["Python"])
     assert Tag.objects.filter(name="python").count() == 1
 
 
@@ -70,15 +65,25 @@ def test_client_cannot_set_read_only_fields(client: Client) -> None:
     assert detail["short_code"] != "mine"
 
 
-@pytest.mark.parametrize("taken", ["docs", "abc1234"])
-def test_alias_used_as_alias_or_code_returns_409(client: Client, taken: str) -> None:
-    """An alias can't repeat another alias or another URL's short code."""
+@pytest.mark.parametrize(
+    ("method", "taken"), [("post", "docs"), ("post", "abc1234"), ("patch", "docs")]
+)
+def test_taken_alias_returns_409(client: Client, method: str, taken: str) -> None:
+    """On create or update, an alias can't repeat another alias or short code."""
     _url(custom_alias="docs")
-    response = _post(client, custom_alias=taken)
+    if method == "post":
+        response = _post(client, custom_alias=taken)
+    else:
+        _url("bbb2222")
+        response = client.patch(
+            "/api/v1/urls/bbb2222/",
+            {"custom_alias": taken},
+            content_type="application/json",
+        )
     assert response.status_code == 409
     assert response.json() == {
         "status_code": 409,
-        "message": "Conflict",
+        "message": "This alias is already taken.",
         "detail": "This alias is already taken.",
     }
 
@@ -106,10 +111,12 @@ def test_bad_alias_or_past_expiry_returns_400(
 
 
 def test_list_is_paginated(client: Client) -> None:
-    """The list has ``count`` and ``results``; newest first."""
+    """The list has its toast, ``count`` and ``results``; newest first."""
     _url("aaa1111")
     _url("bbb2222")
-    body = client.get("/api/v1/urls/").json()["detail"]
+    response = client.get("/api/v1/urls/").json()
+    assert response["message"] == "Short URLs loaded."
+    body = response["detail"]
     assert body["count"] == 2
     assert [item["short_code"] for item in body["results"]] == ["bbb2222", "aaa1111"]
 
@@ -131,11 +138,14 @@ def test_list_filters_and_ordering(client: Client) -> None:
     assert codes("status=active&ordering=popular") == ["hot1111", "live111"]
 
 
-@pytest.mark.parametrize("query", ["status=old", "ordering=newest"])
-def test_unknown_filter_returns_400(client: Client, query: str) -> None:
-    """Only the documented values are accepted."""
+@pytest.mark.parametrize(
+    ("query", "message"),
+    [("status=old", "Use active or expired."), ("ordering=newest", "Use popular.")],
+)
+def test_unknown_filter_returns_400(client: Client, query: str, message: str) -> None:
+    """Only the documented values are accepted; the error is the toast."""
     response = client.get(f"/api/v1/urls/?{query}")
-    assert response.status_code == 400
+    assert (response.status_code, response.json()["message"]) == (400, message)
 
 
 def test_list_query_count_does_not_grow(client: Client) -> None:
@@ -158,35 +168,31 @@ def test_list_query_count_does_not_grow(client: Client) -> None:
 # --- detail, update, delete ---------------------------------------------
 
 
-def test_detail_shows_total_clicks(client: Client) -> None:
-    """``total_clicks`` is counted by the database."""
+@pytest.mark.parametrize(
+    ("countries", "by_country"),
+    [
+        ([], []),
+        (
+            ["Ghana", "Rwanda", "Rwanda", ""],
+            [
+                {"country": "Rwanda", "total": 2},
+                {"country": "", "total": 1},
+                {"country": "Ghana", "total": 1},
+            ],
+        ),
+    ],
+)
+def test_detail_shows_click_totals(
+    client: Client, countries: list[str], by_country: list[dict[str, Any]]
+) -> None:
+    """``total_clicks`` and per-country totals (most first; ``""`` = unknown)."""
     url = _url()
-    Click.objects.create(short_url=url)
-    Click.objects.create(short_url=url)
-    response = client.get("/api/v1/urls/abc1234/")
-    assert response.status_code == 200
-    assert response.json()["detail"]["total_clicks"] == 2
-
-
-def test_detail_shows_clicks_by_country(client: Client) -> None:
-    """Totals per country, most first; an empty country is kept as unknown."""
-    url = _url()
-    for country in ["Ghana", "Rwanda", "Rwanda", ""]:
+    for country in countries:
         Click.objects.create(short_url=url, country=country)
-    body = client.get("/api/v1/urls/abc1234/").json()["detail"]
-    assert body["clicks_by_country"] == [
-        {"country": "Rwanda", "total": 2},
-        {"country": "", "total": 1},
-        {"country": "Ghana", "total": 1},
-    ]
-
-
-def test_detail_without_clicks_has_empty_country_list(client: Client) -> None:
-    """No clicks: ``clicks_by_country`` is ``[]``."""
-    _url()
-    assert (
-        client.get("/api/v1/urls/abc1234/").json()["detail"]["clicks_by_country"] == []
-    )
+    response = client.get("/api/v1/urls/abc1234/")
+    detail = response.json()["detail"]
+    assert (response.status_code, detail["total_clicks"]) == (200, len(countries))
+    assert detail["clicks_by_country"] == by_country
 
 
 def test_detail_query_count_does_not_grow_with_clicks(client: Client) -> None:
@@ -224,8 +230,8 @@ def test_put_replaces_fields_and_tags(client: Client) -> None:
     assert (url.original_url, url.is_active) == ("https://example.com/new", False)
 
 
-def test_patch_keeps_own_alias_and_tags(client: Client) -> None:
-    """Sending its own alias again is not a clash; tags stay when not sent."""
+def test_patch_keeps_own_alias_and_tags_and_null_clears_it(client: Client) -> None:
+    """Own alias again is no clash; tags stay when not sent; ``null`` clears it."""
     _url(custom_alias="docs").tags.add(Tag.objects.create(name="keep"))
     response = client.patch(
         "/api/v1/urls/abc1234/",
@@ -234,28 +240,11 @@ def test_patch_keeps_own_alias_and_tags(client: Client) -> None:
     )
     assert response.status_code == 200
     assert response.json()["detail"]["tags"] == ["keep"]
-
-
-def test_patch_null_removes_the_alias(client: Client) -> None:
-    """``"custom_alias": null`` clears it, so the code alone works again."""
-    _url(custom_alias="docs")
     response = client.patch(
         "/api/v1/urls/abc1234/", {"custom_alias": None}, content_type="application/json"
     )
     assert response.status_code == 200
     assert ShortURL.objects.get().custom_alias is None
-
-
-def test_patch_to_taken_alias_returns_409(client: Client) -> None:
-    """Another URL's alias can't be taken on update either."""
-    _url("aaa1111", custom_alias="docs")
-    _url("bbb2222")
-    response = client.patch(
-        "/api/v1/urls/bbb2222/",
-        {"custom_alias": "docs"},
-        content_type="application/json",
-    )
-    assert response.status_code == 409
 
 
 def test_delete_returns_204(client: Client) -> None:

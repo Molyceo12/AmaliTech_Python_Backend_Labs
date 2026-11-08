@@ -95,11 +95,27 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Print logs (and server error tracebacks) to the console, also with DEBUG off,
 # so `docker compose logs web` shows them.
+# Also saved to logs/app.log: 5 MB per file, the last 3 files kept.
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "root": {"handlers": ["console"], "level": "INFO"},
+    "formatters": {
+        "plain": {"format": "{asctime} {levelname} {name}: {message}", "style": "{"}
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_DIR / "app.log",
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 3,
+            "formatter": "plain",
+            "encoding": "utf-8",
+        },
+    },
+    "root": {"handlers": ["console", "file"], "level": "INFO"},
 }
 
 # drf-spectacular builds the OpenAPI schema shown at /api/docs/.

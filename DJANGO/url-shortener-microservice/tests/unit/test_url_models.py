@@ -5,7 +5,7 @@ from importlib import import_module
 
 import pytest
 from django.apps import apps
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from accounts.models import User
@@ -29,26 +29,20 @@ def test_new_url_defaults() -> None:
     assert (url.owner, url.expires_at, url.custom_alias) == (None, None, None)
 
 
-def test_custom_alias_is_unique_but_many_urls_can_have_none() -> None:
-    """Two ``None`` aliases are fine; the same alias twice is not."""
+def test_database_rules() -> None:
+    """Many ``None`` aliases but no repeated alias; no past expiry; tags are
+    saved lowercase and trimmed, so ``PYTHON`` clashes with ``" Python "``."""
     _url("aaa1111")
     _url("bbb2222")
     _url("ccc3333", custom_alias="docs")
-    with pytest.raises(IntegrityError):
-        _url("ddd4444", custom_alias="docs")
-
-
-def test_expiry_must_be_after_creation() -> None:
-    """The database refuses an ``expires_at`` in the past at creation."""
-    with pytest.raises(IntegrityError):
-        _url(expires_at=timezone.now() - timedelta(days=1))
-
-
-def test_tag_is_saved_lowercase_trimmed_and_unique() -> None:
-    """``" Python "`` becomes ``python``; ``PYTHON`` then clashes."""
     assert Tag.objects.create(name=" Python ").name == "python"
-    with pytest.raises(IntegrityError):
-        Tag.objects.create(name="PYTHON")
+    for broken in (
+        lambda: _url("ddd4444", custom_alias="docs"),
+        lambda: _url("eee5555", expires_at=timezone.now() - timedelta(days=1)),
+        lambda: Tag.objects.create(name="PYTHON"),
+    ):
+        with transaction.atomic(), pytest.raises(IntegrityError):
+            broken()
 
 
 def test_url_has_many_tags_and_tag_has_many_urls() -> None:
@@ -60,20 +54,13 @@ def test_url_has_many_tags_and_tag_has_many_urls() -> None:
     assert set(tag.short_urls.all()) == {first, second}
 
 
-def test_deleting_url_deletes_its_clicks() -> None:
-    """``Click`` uses ``CASCADE``."""
-    url = _url()
-    Click.objects.create(short_url=url, ip_address="203.0.113.5")
-    url.delete()
-    assert not Click.objects.exists()
-
-
-def test_deleting_user_deletes_their_urls() -> None:
-    """``owner`` uses ``CASCADE``."""
+def test_deleting_a_user_deletes_their_urls_and_clicks() -> None:
+    """``owner`` and ``Click.short_url`` both use ``CASCADE``."""
     user = User.objects.create_user(email="ana@example.com", username="ana")
-    _url(owner=user)
+    Click.objects.create(short_url=_url(owner=user), ip_address="203.0.113.5")
     user.delete()
     assert not ShortURL.objects.exists()
+    assert not Click.objects.exists()
 
 
 def test_active_and_expired_urls() -> None:
@@ -105,14 +92,9 @@ def test_str_of_each_model() -> None:
     assert str(click).startswith(f"{url.pk} at ")
 
 
-def test_default_tags_come_from_the_data_migration() -> None:
-    """Migration ``0003`` seeds ``marketing`` and ``social`` in every database."""
-    names = set(Tag.objects.values_list("name", flat=True))
-    assert {"marketing", "social"} <= names
-
-
-def test_default_tags_migration_can_be_undone() -> None:
-    """The reverse step removes the default tags and nothing else."""
+def test_default_tags_migration_and_its_undo() -> None:
+    """``0003`` seeds ``marketing`` and ``social``; undo removes only those."""
+    assert {"marketing", "social"} <= set(Tag.objects.values_list("name", flat=True))
     migration = import_module("shortener.migrations.0003_seed_default_tags")
     Tag.objects.create(name="docs")
     migration.remove_tags(apps, None)

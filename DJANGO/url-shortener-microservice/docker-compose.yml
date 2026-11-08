@@ -31,9 +31,13 @@ services:
              gunicorn url_shortener.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     ports:
       - "8000:8000"
+    # Keep logs/app.log when the container is rebuilt.
+    volumes:
+      - app_logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   postgres_data:
+  app_logs:

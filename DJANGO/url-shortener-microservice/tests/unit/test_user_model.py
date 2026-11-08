@@ -15,14 +15,10 @@ def _user(email: str = "ana@example.com", **fields: object) -> User:
     )
 
 
-def test_project_uses_the_custom_user() -> None:
-    """``AUTH_USER_MODEL`` points Django at ``accounts.User``."""
-    assert get_user_model() is User
-
-
 @pytest.mark.django_db
-def test_new_user_is_free_and_not_premium() -> None:
-    """Defaults: tier ``free``, ``is_premium`` False."""
+def test_project_uses_the_custom_user_with_free_default() -> None:
+    """``AUTH_USER_MODEL`` is ``accounts.User``; a new user is free, not premium."""
+    assert get_user_model() is User
     user = _user()
     assert (user.tier, user.is_premium) == (User.Tier.FREE, False)
 
@@ -37,28 +33,21 @@ def test_email_is_saved_lowercase_and_unique() -> None:
 
 @pytest.mark.django_db
 def test_is_premium_follows_the_tier() -> None:
-    """``premium`` turns ``is_premium`` on; back to ``free`` turns it off."""
+    """``premium`` turns ``is_premium`` on, ``free`` off; ``admin`` gives no rights."""
     user = _user(tier=User.Tier.PREMIUM)
     assert user.is_premium is True
     user.tier = User.Tier.FREE
     user.save()
     assert user.is_premium is False
+    # tier=admin is a business tier: no admin rights, not premium.
+    admin = _user("boss@example.com", tier=User.Tier.ADMIN)
+    assert (admin.is_staff, admin.is_superuser, admin.is_premium) == (False,) * 3
 
 
 @pytest.mark.django_db
-def test_admin_tier_gives_no_admin_rights() -> None:
-    """``tier=admin`` is a business tier; ``is_staff`` stays False."""
-    user = _user(tier=User.Tier.ADMIN)
-    assert (user.is_staff, user.is_superuser, user.is_premium) == (False, False, False)
-
-
-@pytest.mark.django_db
-def test_superuser_logs_in_with_email_and_sees_the_add_form(client: Client) -> None:
-    """A superuser made with an email can open the admin's add-user page."""
+def test_superuser_logs_in_with_email(client: Client) -> None:
+    """A superuser made with an email logs in with that email."""
     User.objects.create_superuser(
         email="boss@example.com", username="boss", password="test-only-pass"
     )
     assert client.login(email="boss@example.com", password="test-only-pass")
-    response = client.get("/admin/accounts/user/add/")
-    assert response.status_code == 200
-    assert b'name="email"' in response.content

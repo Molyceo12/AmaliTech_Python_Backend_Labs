@@ -31,19 +31,14 @@ def _seed() -> str:
 
 @pytest.mark.usefixtures("dev")
 def test_creates_user_tags_urls_and_clicks() -> None:
-    """One run fills every table and says how much it made."""
+    """One run fills every table, covers every case and says what it made."""
     assert _seed() == "Seeded 1 user, 4 tags, 5 URLs, 12 clicks."
     user = User.objects.get(email="seed@example.com")
     assert user.tier == User.Tier.PREMIUM
     # 2 default tags from the migration + 4 seed tags.
     assert (Tag.objects.count(), Click.objects.count()) == (6, 12)
     assert ShortURL.objects.filter(owner=user).count() == 5
-
-
-@pytest.mark.usefixtures("dev")
-def test_every_case_is_seeded() -> None:
-    """Active, popular, alias, switched off and expired URLs all exist."""
-    _seed()
+    # Every case: active, popular, alias, switched off, expired.
     assert ShortURL.objects.active_urls().count() == 3
     assert list(
         ShortURL.objects.expired_urls().values_list("short_code", flat=True)
@@ -51,12 +46,7 @@ def test_every_case_is_seeded() -> None:
     assert ShortURL.objects.popular_urls().first().short_code == "seedhot"  # type: ignore[union-attr]
     assert ShortURL.objects.get(custom_alias="daily-news").short_code == "seedals"
     assert ShortURL.objects.get(short_code="seedoff").is_active is False
-
-
-@pytest.mark.usefixtures("dev")
-def test_click_count_matches_saved_clicks() -> None:
-    """``click_count`` equals the number of ``Click`` rows of each URL."""
-    _seed()
+    # click_count equals the saved Click rows of each URL.
     for url in ShortURL.objects.annotate(total=Count("clicks")):
         assert url.click_count == url.total
 
@@ -77,15 +67,13 @@ def test_refuses_when_debug_is_off(settings: Any) -> None:
     assert not User.objects.exists()
 
 
-def test_password_from_env_lets_the_user_log_in(dev: Any) -> None:
-    """``SEED_USER_PASSWORD`` becomes the seed user's password."""
-    dev.SEED_USER_PASSWORD = "test-only-seed-pass"
+@pytest.mark.parametrize("password", ["test-only-seed-pass", ""])
+def test_password_comes_from_env_or_is_unusable(dev: Any, password: str) -> None:
+    """``SEED_USER_PASSWORD`` is the password; without it, nobody can log in."""
+    dev.SEED_USER_PASSWORD = password
     _seed()
-    assert User.objects.get().check_password("test-only-seed-pass")
-
-
-@pytest.mark.usefixtures("dev")
-def test_without_password_the_user_cannot_log_in() -> None:
-    """No password in ``.env`` → unusable password."""
-    _seed()
-    assert not User.objects.get().has_usable_password()
+    user = User.objects.get()
+    if password:
+        assert user.check_password(password)
+    else:
+        assert not user.has_usable_password()

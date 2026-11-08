@@ -49,6 +49,9 @@ COPY --from=builder /opt/venv /opt/venv
 # Copy the code, owned by the app user.
 COPY --chown=app:app . .
 
+# Folder for logs/app.log, writable by the app user (a volume keeps it).
+RUN mkdir -p /app/logs && chown app:app /app/logs
+
 # Run everything below as the app user.
 USER app
 
