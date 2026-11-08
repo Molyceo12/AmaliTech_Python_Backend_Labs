@@ -11,31 +11,19 @@ original URL.
 ## Architecture
 
 ```mermaid
-graph TD
-    Client((Client)) -->|HTTP requests| Gunicorn(Gunicorn<br/>8000)
-    PgAdmin((pgAdmin)) -->|5433| DB
+graph LR
+    Client((Client)) -->|request| Gunicorn(Gunicorn<br/>8000)
+    Gunicorn --> Views(Django views)
 
-    subgraph Web["web container"]
-        Gunicorn --> Routes{URL routes}
-        Routes -->|/api/v1/urls/| API(URL API<br/>list, create, detail, update, delete)
-        Routes -->|/code/| Redirect(Redirect<br/>302 + click)
-        Routes -->|/api/docs/| Docs(Swagger UI)
-        Routes -->|/admin/| Admin(Django admin)
-        API --> Logic(Serializers, filters, services)
-        Redirect --> Logic
-        Logic --> Models(Models: User, ShortURL, Tag, Click)
-        API --> Renderer(Renderer<br/>status_code, message, detail)
-        Logs[(app_logs volume<br/>logs/app.log)]
-    end
+    Views --> A(List + create<br/>/api/v1/urls/)
+    Views --> B(Detail, update, delete<br/>/api/v1/urls/code/)
+    Views --> C(Redirect<br/>/code/)
 
-    subgraph "Infrastructure"
-        DB[(PostgreSQL<br/>5432<br/>postgres_data volume)]
-    end
+    A --> DB[(PostgreSQL<br/>5432)]
+    B --> DB
+    C --> DB
 
-    Models -.-> DB
-    Renderer -->|JSON| Client
-    Redirect -->|302 / 404 / 410| Client
-    Gunicorn -.-> Logs
+    DB -->|JSON / 302| Client
 ```
 
 ### Services overview
