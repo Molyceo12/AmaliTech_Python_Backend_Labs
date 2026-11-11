@@ -32,9 +32,10 @@ def _seed() -> str:
 @pytest.mark.usefixtures("dev")
 def test_creates_user_tags_urls_and_clicks() -> None:
     """One run fills every table, covers every case and says what it made."""
-    assert _seed() == "Seeded 1 user, 4 tags, 5 URLs, 12 clicks."
+    assert _seed() == "Seeded 2 users, 4 tags, 5 URLs, 12 clicks."
     user = User.objects.get(email="seed@example.com")
     assert user.tier == User.Tier.PREMIUM
+    assert User.objects.get(email="free@example.com").tier == User.Tier.FREE
     # 2 default tags from the migration + 4 seed tags.
     assert (Tag.objects.count(), Click.objects.count()) == (6, 12)
     assert ShortURL.objects.filter(owner=user).count() == 5
@@ -70,8 +71,8 @@ def test_password_comes_from_env_or_is_unusable(dev: Any, password: str) -> None
     """``SEED_USER_PASSWORD`` is the password; without it, nobody can log in."""
     dev.SEED_USER_PASSWORD = password
     _seed()
-    user = User.objects.get()
-    if password:
-        assert user.check_password(password)
-    else:
-        assert not user.has_usable_password()
+    for user in User.objects.all():
+        if password:
+            assert user.check_password(password)
+        else:
+            assert not user.has_usable_password()
