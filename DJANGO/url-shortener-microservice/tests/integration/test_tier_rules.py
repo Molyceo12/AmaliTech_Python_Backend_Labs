@@ -1,4 +1,4 @@
-"""Tier rules on ``/api/v1/urls/``: active URL limit for Free users."""
+"""Tier rules on ``/api/v1/urls/``: Free users get 10 active URLs and no alias."""
 
 from datetime import timedelta
 from typing import Any
@@ -14,6 +14,7 @@ from tests.helpers import expire, make_url
 pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("auth_client")]
 
 LIMIT_MESSAGE = "Free plan: at most 10 active URLs."
+ALIAS_MESSAGE = "Custom aliases are for Premium users."
 
 
 def _post(client: Client, **data: Any) -> Any:
@@ -64,3 +65,30 @@ def test_premium_and_admin_have_no_limit(client: Client, me: User, tier: str) ->
     me.save()
     _fill_active_urls()
     assert _post(client).status_code == 201
+
+
+def test_free_user_cannot_use_an_alias(client: Client) -> None:
+    """Free → 403 on create and on update; nothing is saved."""
+    response = _post(client, custom_alias="docs")
+    assert response.status_code == 403
+    assert response.json()["message"] == ALIAS_MESSAGE
+    make_url()
+    response = client.patch(
+        "/api/v1/urls/abc1234/",
+        {"custom_alias": "docs"},
+        content_type="application/json",
+    )
+    assert response.status_code == 403
+
+
+def test_free_user_may_send_a_null_alias(client: Client) -> None:
+    """No alias is fine for everyone."""
+    assert _post(client, custom_alias=None).status_code == 201
+
+
+@pytest.mark.usefixtures("premium")
+def test_premium_user_can_use_an_alias(client: Client) -> None:
+    """Premium → 201 with the alias."""
+    response = _post(client, custom_alias="docs")
+    assert response.status_code == 201
+    assert response.json()["detail"]["custom_alias"] == "docs"

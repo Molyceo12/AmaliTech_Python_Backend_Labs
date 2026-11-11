@@ -26,6 +26,7 @@ def _post(client: Client, **data: Any) -> Any:
     return client.post("/api/v1/urls/", body, content_type="application/json")
 
 
+@pytest.mark.usefixtures("premium")
 def test_create_with_alias_expiry_tags_and_details(client: Client) -> None:
     """Every optional field is saved; tags are trimmed, lowercased and reused."""
     Tag.objects.create(name="python")

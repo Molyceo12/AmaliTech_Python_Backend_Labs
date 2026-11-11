@@ -9,7 +9,7 @@ from rest_framework import serializers
 
 from shortener.models import ShortURL
 from shortener.serializers.fields import TagNamesField
-from shortener.services.limits import check_active_limit
+from shortener.services.limits import check_active_limit, check_alias_allowed
 from shortener.services.short_codes import set_tags
 from url_shortener.exceptions import Conflict
 
@@ -77,9 +77,13 @@ class ShortURLSerializer(serializers.ModelSerializer[ShortURL]):
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """Apply the tier rules for the logged-in user."""
+        user = self.context["request"].user
+        alias = attrs.get("custom_alias")
+        if alias and alias != getattr(self.instance, "custom_alias", None):
+            check_alias_allowed(user)
         was_active = self.instance.is_active if self.instance else False
         if attrs.get("is_active") and not was_active:
-            check_active_limit(self.context["request"].user)
+            check_active_limit(user)
         return attrs
 
     def update(self, instance: ShortURL, validated_data: dict[str, Any]) -> ShortURL:
