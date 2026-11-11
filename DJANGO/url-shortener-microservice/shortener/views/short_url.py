@@ -10,11 +10,13 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from shortener.filters.short_url import ORDERINGS, STATUS_QUERIES, apply_filters
 from shortener.models import ShortURL
+from shortener.permissions import IsOwnerOrReadOnly
 from shortener.serializers import (
     ShortURLCreatedSerializer,
     ShortURLDetailSerializer,
@@ -25,6 +27,8 @@ from url_shortener.exceptions import ErrorSerializer
 
 ERRORS = {400: ErrorSerializer, 401: ErrorSerializer, 500: ErrorSerializer}
 DETAIL_ERRORS = {**ERRORS, 404: ErrorSerializer}
+# Only the owner may change or delete.
+CHANGE_ERRORS = {**DETAIL_ERRORS, 403: ErrorSerializer, 409: ErrorSerializer}
 
 
 @extend_schema_view(
@@ -63,23 +67,21 @@ class ShortURLListCreateView(generics.ListCreateAPIView):  # type: ignore[type-a
 
 @extend_schema_view(
     get=extend_schema(responses={200: ShortURLDetailSerializer, **DETAIL_ERRORS}),
-    put=extend_schema(
-        responses={200: ShortURLDetailSerializer, 409: ErrorSerializer, **DETAIL_ERRORS}
-    ),
-    patch=extend_schema(
-        responses={200: ShortURLDetailSerializer, 409: ErrorSerializer, **DETAIL_ERRORS}
-    ),
+    put=extend_schema(responses={200: ShortURLDetailSerializer, **CHANGE_ERRORS}),
+    patch=extend_schema(responses={200: ShortURLDetailSerializer, **CHANGE_ERRORS}),
     delete=extend_schema(
         responses={
             200: OpenApiResponse(description="Short URL deleted; detail is null."),
             401: ErrorSerializer,
+            403: ErrorSerializer,
             404: ErrorSerializer,
         }
     ),
 )
 class ShortURLDetailView(generics.RetrieveUpdateDestroyAPIView):  # type: ignore[type-arg]
-    """Show, change or delete one short URL, found by its code."""
+    """Show one short URL; its owner can also change or delete it."""
 
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     serializer_class = ShortURLDetailSerializer
     success_messages = {
         "GET": "Short URL loaded.",

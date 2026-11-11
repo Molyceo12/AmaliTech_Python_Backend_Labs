@@ -272,6 +272,25 @@ def test_unknown_code_returns_404(client: Client, method: str) -> None:
     assert response.status_code == 404
 
 
+def test_anyone_logged_in_can_read_another_users_url(client: Client) -> None:
+    """The "ReadOnly" part: GET works on a URL I don't own."""
+    _url(owner=User.objects.create_user(email="ana@example.com", username="ana"))
+    assert client.get("/api/v1/urls/abc1234/").status_code == 200
+
+
+@pytest.mark.parametrize("method", ["put", "patch", "delete"])
+def test_only_the_owner_can_change_or_delete(client: Client, method: str) -> None:
+    """Changing or deleting someone else's URL → 403; nothing changes."""
+    _url(owner=User.objects.create_user(email="ana@example.com", username="ana"))
+    body = {"original_url": "https://example.com/new"}
+    response = getattr(client, method)(
+        "/api/v1/urls/abc1234/", body, content_type="application/json"
+    )
+    assert response.status_code == 403
+    assert response.json()["message"] == "You can only change your own short URLs."
+    assert ShortURL.objects.get().original_url == "https://example.com/"
+
+
 @pytest.mark.parametrize(
     ("method", "path"),
     [
