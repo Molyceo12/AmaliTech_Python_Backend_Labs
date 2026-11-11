@@ -25,6 +25,7 @@ def fixture_paths(client: Client) -> dict[str, Any]:
         ("/api/v1/urls/{short_code}/", "patch", {"200", "400", "404", "409", "500"}),
         ("/api/v1/urls/{short_code}/", "delete", {"200", "404"}),
         ("/{short_code}/", "get", {"302", "404", "410", "500"}),
+        ("/api/v1/auth/register/", "post", {"201", "400", "500"}),
     ],
 )
 def test_schema_lists_every_endpoint_with_its_codes(
