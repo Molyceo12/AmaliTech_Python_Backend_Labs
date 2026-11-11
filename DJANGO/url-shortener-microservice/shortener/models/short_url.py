@@ -28,7 +28,6 @@ class ShortURL(models.Model):
     )
     is_active = models.BooleanField(default=True)
     expires_at = models.DateTimeField(null=True, blank=True)
-    # The brief asks for nullable CharFields (Django's default would be "").
     title = models.CharField(max_length=200, null=True, blank=True)  # noqa: DJ001
     description = models.CharField(max_length=500, null=True, blank=True)  # noqa: DJ001
     favicon = models.CharField(max_length=2048, null=True, blank=True)  # noqa: DJ001
