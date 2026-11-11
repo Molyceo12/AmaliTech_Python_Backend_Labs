@@ -1,4 +1,4 @@
-"""``?status=`` and ``?ordering=`` for the URL list."""
+"""``?status=``, ``?ordering=`` and ``?tag=`` for the URL list."""
 
 from typing import Any
 
@@ -7,13 +7,15 @@ from rest_framework.exceptions import ValidationError
 
 from shortener.models import ShortURL
 
-# ?status= picks one of the custom queries on ShortURLQuerySet.
 STATUS_QUERIES = {"active": "active_urls", "expired": "expired_urls"}
 ORDERINGS = ["popular"]
 
 
 def apply_filters(queryset: Any, params: Any) -> QuerySet[ShortURL]:
-    """Apply ``?status=active|expired`` and ``?ordering=popular``; else 400."""
+    """Apply ``?status=active|expired``, ``?ordering=popular`` and ``?tag=<name>``.
+
+    A wrong status or ordering → 400.
+    """
     status = params.get("status")
     if status is not None:
         if status not in STATUS_QUERIES:
@@ -24,4 +26,8 @@ def apply_filters(queryset: Any, params: Any) -> QuerySet[ShortURL]:
         if ordering not in ORDERINGS:
             raise ValidationError({"ordering": ["Use popular."]})
         queryset = queryset.popular_urls()
+    tag = params.get("tag")
+    if tag:
+        # Tag names are saved lowercase, so any case matches.
+        queryset = queryset.filter(tags__name=tag.strip().lower())
     return queryset  # type: ignore[no-any-return]

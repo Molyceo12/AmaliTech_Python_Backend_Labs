@@ -12,26 +12,18 @@ from django.utils import timezone
 from accounts.models import User
 from shortener.models import Click, ShortURL, Tag
 from tests.helpers import expire
+from tests.helpers import make_url as _url
 
-pytestmark = pytest.mark.django_db
+# Every test here is logged in as "me": auth_client adds the token to client.
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("auth_client")]
 
 FUTURE = (timezone.now() + timedelta(days=7)).isoformat()
-
-
-def _url(code: str = "abc1234", **fields: Any) -> ShortURL:
-    """Save a short URL with the given code."""
-    return ShortURL.objects.create(
-        original_url="https://example.com/", short_code=code, **fields
-    )
 
 
 def _post(client: Client, **data: Any) -> Any:
     """POST JSON to ``/api/v1/urls/`` with a valid URL plus ``data``."""
     body = {"original_url": "https://example.com/", **data}
     return client.post("/api/v1/urls/", body, content_type="application/json")
-
-
-# --- create -------------------------------------------------------------
 
 
 def test_create_with_alias_expiry_tags_and_details(client: Client) -> None:
@@ -61,7 +53,7 @@ def test_client_cannot_set_read_only_fields(client: Client) -> None:
     User.objects.create_user(email="ana@example.com", username="ana")
     response = _post(client, owner="ana@example.com", short_code="mine", click_count=9)
     detail = response.json()["detail"]
-    assert (detail["owner"], detail["click_count"]) == (None, 0)
+    assert (detail["owner"], detail["click_count"]) == ("me@example.com", 0)
     assert detail["short_code"] != "mine"
 
 
@@ -107,9 +99,6 @@ def test_bad_alias_or_past_expiry_returns_400(
     assert not ShortURL.objects.exists()
 
 
-# --- list ---------------------------------------------------------------
-
-
 def test_list_is_paginated(client: Client) -> None:
     """The list has its toast, ``count`` and ``results``; newest first."""
     _url("aaa1111")
@@ -119,6 +108,15 @@ def test_list_is_paginated(client: Client) -> None:
     body = response["detail"]
     assert body["count"] == 2
     assert [item["short_code"] for item in body["results"]] == ["bbb2222", "aaa1111"]
+
+
+def test_list_shows_only_my_urls(client: Client) -> None:
+    """Another user's URL is not in my list."""
+    _url("mine111")
+    ana = User.objects.create_user(email="ana@example.com", username="ana")
+    _url("anas111", owner=ana)
+    results = client.get("/api/v1/urls/").json()["detail"]["results"]
+    assert [url["short_code"] for url in results] == ["mine111"]
 
 
 def test_list_filters_and_ordering(client: Client) -> None:
@@ -138,6 +136,21 @@ def test_list_filters_and_ordering(client: Client) -> None:
     assert codes("status=active&ordering=popular") == ["hot1111", "live111"]
 
 
+def test_tag_search_in_any_case_and_with_status(client: Client) -> None:
+    """``?tag=`` keeps URLs with that tag; it works together with ``?status=``."""
+    python = Tag.objects.create(name="python")
+    _url("py11111").tags.add(python)
+    _url("pyoff11", is_active=False).tags.add(python)
+    _url("web1111").tags.add(Tag.objects.create(name="web"))
+
+    def codes(query: str) -> list[str]:
+        results = client.get(f"/api/v1/urls/?{query}").json()["detail"]["results"]
+        return sorted(url["short_code"] for url in results)
+
+    assert codes("tag=PYTHON") == ["py11111", "pyoff11"]
+    assert codes("tag=python&status=active") == ["py11111"]
+
+
 @pytest.mark.parametrize(
     ("query", "message"),
     [("status=old", "Use active or expired."), ("ordering=newest", "Use popular.")],
@@ -150,7 +163,6 @@ def test_unknown_filter_returns_400(client: Client, query: str, message: str) ->
 
 def test_list_query_count_does_not_grow(client: Client) -> None:
     """Owners and tags are loaded together, so 5 URLs cost what 1 does."""
-    user = User.objects.create_user(email="ana@example.com", username="ana")
     tag = Tag.objects.create(name="docs")
 
     def queries_for_list() -> int:
@@ -158,14 +170,11 @@ def test_list_query_count_does_not_grow(client: Client) -> None:
             client.get("/api/v1/urls/")
         return len(queries)
 
-    _url("url0000", owner=user).tags.add(tag)
+    _url("url0000").tags.add(tag)
     one = queries_for_list()
     for number in range(1, 5):
-        _url(f"url000{number}", owner=user).tags.add(tag)
+        _url(f"url000{number}").tags.add(tag)
     assert queries_for_list() == one
-
-
-# --- detail, update, delete ---------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -267,6 +276,45 @@ def test_unknown_code_returns_404(client: Client, method: str) -> None:
         "/api/v1/urls/nothing/", {}, content_type="application/json"
     )
     assert response.status_code == 404
+
+
+def test_anyone_logged_in_can_read_another_users_url(client: Client) -> None:
+    """The "ReadOnly" part: GET works on a URL I don't own."""
+    _url(owner=User.objects.create_user(email="ana@example.com", username="ana"))
+    assert client.get("/api/v1/urls/abc1234/").status_code == 200
+
+
+@pytest.mark.parametrize("method", ["put", "patch", "delete"])
+def test_only_the_owner_can_change_or_delete(client: Client, method: str) -> None:
+    """Changing or deleting someone else's URL → 403; nothing changes."""
+    _url(owner=User.objects.create_user(email="ana@example.com", username="ana"))
+    body = {"original_url": "https://example.com/new"}
+    response = getattr(client, method)(
+        "/api/v1/urls/abc1234/", body, content_type="application/json"
+    )
+    assert response.status_code == 403
+    assert response.json()["message"] == "You can only change your own short URLs."
+    assert ShortURL.objects.get().original_url == "https://example.com/"
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("get", "/api/v1/urls/"),
+        ("post", "/api/v1/urls/"),
+        ("get", "/api/v1/urls/abc1234/"),
+        ("patch", "/api/v1/urls/abc1234/"),
+        ("delete", "/api/v1/urls/abc1234/"),
+    ],
+)
+def test_no_token_returns_401(method: str, path: str) -> None:
+    """The URL API needs a login; a client with no token gets 401."""
+    _url()
+    response = getattr(Client(), method)(path)
+    assert response.status_code == 401
+    assert response.json()["message"] == (
+        "Authentication credentials were not provided."
+    )
 
 
 def test_old_unversioned_route_is_gone(client: Client) -> None:

@@ -11,17 +11,15 @@ class Click(models.Model):
     )
     clicked_at = models.DateTimeField(auto_now_add=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
-    # The brief asks for nullable city, country and referrer (null = unknown).
     city = models.CharField(max_length=100, null=True, blank=True)  # noqa: DJ001
     country = models.CharField(max_length=100, null=True, blank=True)  # noqa: DJ001
     user_agent = models.TextField(blank=True)
     referrer = models.URLField(max_length=2048, null=True, blank=True)  # noqa: DJ001
 
     class Meta:
-        """Newest clicks first; indexed for "clicks of one URL over time"."""
+        """Newest clicks first."""
 
         ordering = ["-clicked_at"]
-        indexes = [models.Index(fields=["url", "clicked_at"])]
 
     def __str__(self) -> str:
         """Show which URL was clicked and when."""

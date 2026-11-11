@@ -1,20 +1,19 @@
 """Tests for ``GET /<short_code>/``."""
 
 from datetime import timedelta
+from typing import Any
 
 import pytest
 from django.test import Client
 from django.utils import timezone
 
 from shortener.models import Click, ShortURL
-from tests.helpers import expire
+from tests.helpers import expire, make_url
 
 
-def _url(**fields: object) -> ShortURL:
+def _url(**fields: Any) -> ShortURL:
     """Save ``abc1234`` pointing at ``https://example.com/long``."""
-    return ShortURL.objects.create(
-        original_url="https://example.com/long", short_code="abc1234", **fields
-    )
+    return make_url(original_url="https://example.com/long", **fields)
 
 
 @pytest.mark.django_db

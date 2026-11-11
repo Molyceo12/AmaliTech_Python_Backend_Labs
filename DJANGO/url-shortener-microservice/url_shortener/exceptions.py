@@ -89,3 +89,7 @@ class ErrorSerializer(serializers.Serializer[Any]):  # pylint: disable=abstract-
     status_code = serializers.IntegerField()
     message = serializers.CharField()
     detail = serializers.JSONField()
+
+
+# Errors Swagger lists for every endpoint that needs a login.
+ERRORS = {400: ErrorSerializer, 401: ErrorSerializer, 500: ErrorSerializer}

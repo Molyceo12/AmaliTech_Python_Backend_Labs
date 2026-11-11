@@ -5,28 +5,23 @@ from importlib import import_module
 
 import pytest
 from django.apps import apps
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connection, transaction
+from django.db.migrations.executor import MigrationExecutor
 from django.utils import timezone
 
 from accounts.models import User
 from shortener.models import Click, ShortURL, Tag
-from tests.helpers import expire
+from tests.helpers import ME, expire
+from tests.helpers import make_url as _url
 
 pytestmark = pytest.mark.django_db
 
 
-def _url(code: str = "abc1234", **fields: object) -> ShortURL:
-    """Save a short URL with the given code."""
-    return ShortURL.objects.create(
-        original_url="https://example.com/", short_code=code, **fields
-    )
-
-
 def test_new_url_defaults() -> None:
-    """Active, no clicks, no owner, no expiry, no alias."""
+    """Active, no clicks, no expiry, no alias."""
     url = _url()
-    assert (url.is_active, url.click_count) == (True, 0)
-    assert (url.owner, url.expires_at, url.custom_alias) == (None, None, None)
+    assert (url.is_active, url.click_count, url.owner.email) == (True, 0, ME)
+    assert (url.expires_at, url.custom_alias) == (None, None)
 
 
 def test_database_rules() -> None:
@@ -101,3 +96,22 @@ def test_default_tags_migration_and_its_undo() -> None:
     assert list(Tag.objects.values_list("name", flat=True)) == ["docs"]
     migration.add_tags(apps, None)
     assert Tag.objects.count() == 3
+
+
+# serialized_rollback puts the default tags back after the flush.
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
+def test_owner_migration_gives_ownerless_urls_to_the_seed_user() -> None:
+    """``0006`` + ``0007``: an old URL with no owner ends up owned by the seed user."""
+    before = [("shortener", "0005_click_fields_like_brief")]
+    executor = MigrationExecutor(connection)
+    executor.migrate(before)
+    old_url = executor.loader.project_state(before).apps.get_model(
+        "shortener", "ShortURL"
+    )
+    old_url.objects.create(original_url="https://example.com/", short_code="old1111")
+
+    executor = MigrationExecutor(connection)
+    executor.migrate(executor.loader.graph.leaf_nodes())
+    owner = ShortURL.objects.get(short_code="old1111").owner
+    assert owner.email == "seed@example.com"
+    assert not owner.has_usable_password()
