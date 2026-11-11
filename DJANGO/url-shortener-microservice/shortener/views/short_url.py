@@ -23,7 +23,7 @@ from shortener.serializers import (
 from shortener.services.short_codes import create_short_url
 from url_shortener.exceptions import ErrorSerializer
 
-ERRORS = {400: ErrorSerializer, 500: ErrorSerializer}
+ERRORS = {400: ErrorSerializer, 401: ErrorSerializer, 500: ErrorSerializer}
 DETAIL_ERRORS = {**ERRORS, 404: ErrorSerializer}
 
 
@@ -52,8 +52,9 @@ class ShortURLListCreateView(generics.ListCreateAPIView):  # type: ignore[type-a
 
     def perform_create(self, serializer: ShortURLSerializer) -> None:  # type: ignore[override]
         """Let the service pick the code and save the URL and its tags."""
-        # Module 7: owner=self.request.user once login exists.
-        serializer.instance = create_short_url(owner=None, **serializer.validated_data)
+        serializer.instance = create_short_url(
+            owner=self.request.user, **serializer.validated_data
+        )
 
 
 @extend_schema_view(
@@ -67,6 +68,7 @@ class ShortURLListCreateView(generics.ListCreateAPIView):  # type: ignore[type-a
     delete=extend_schema(
         responses={
             200: OpenApiResponse(description="Short URL deleted; detail is null."),
+            401: ErrorSerializer,
             404: ErrorSerializer,
         }
     ),

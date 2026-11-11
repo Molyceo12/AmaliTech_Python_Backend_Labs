@@ -13,7 +13,8 @@ from accounts.models import User
 from shortener.models import Click, ShortURL, Tag
 from tests.helpers import expire
 
-pytestmark = pytest.mark.django_db
+# Every test here is logged in as "me": auth_client adds the token to client.
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("auth_client")]
 
 FUTURE = (timezone.now() + timedelta(days=7)).isoformat()
 
@@ -61,7 +62,7 @@ def test_client_cannot_set_read_only_fields(client: Client) -> None:
     User.objects.create_user(email="ana@example.com", username="ana")
     response = _post(client, owner="ana@example.com", short_code="mine", click_count=9)
     detail = response.json()["detail"]
-    assert (detail["owner"], detail["click_count"]) == (None, 0)
+    assert (detail["owner"], detail["click_count"]) == ("me@example.com", 0)
     assert detail["short_code"] != "mine"
 
 
@@ -267,6 +268,26 @@ def test_unknown_code_returns_404(client: Client, method: str) -> None:
         "/api/v1/urls/nothing/", {}, content_type="application/json"
     )
     assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("get", "/api/v1/urls/"),
+        ("post", "/api/v1/urls/"),
+        ("get", "/api/v1/urls/abc1234/"),
+        ("patch", "/api/v1/urls/abc1234/"),
+        ("delete", "/api/v1/urls/abc1234/"),
+    ],
+)
+def test_no_token_returns_401(method: str, path: str) -> None:
+    """The URL API needs a login; a client with no token gets 401."""
+    _url()
+    response = getattr(Client(), method)(path)
+    assert response.status_code == 401
+    assert response.json()["message"] == (
+        "Authentication credentials were not provided."
+    )
 
 
 def test_old_unversioned_route_is_gone(client: Client) -> None:

@@ -18,6 +18,7 @@ SERVER_ERROR = {
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("auth_client")
 @pytest.mark.parametrize(
     ("target", "call"),
     [

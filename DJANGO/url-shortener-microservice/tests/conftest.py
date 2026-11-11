@@ -6,7 +6,10 @@ from types import ModuleType
 
 import pytest
 from django.core.cache import cache
+from django.test import Client
+from rest_framework_simplejwt.tokens import AccessToken
 
+from accounts.models import User
 from url_shortener.settings import base
 
 
@@ -14,6 +17,19 @@ from url_shortener.settings import base
 def _clear_cache() -> None:
     """Start each test with empty rate limit counters (they live in the cache)."""
     cache.clear()
+
+
+@pytest.fixture(name="me")
+def fixture_me(db: None) -> User:  # pylint: disable=unused-argument
+    """The logged-in user of ``auth_client``."""
+    return User.objects.create_user(email="me@example.com", username="me")
+
+
+@pytest.fixture(name="auth_client")
+def fixture_auth_client(client: Client, me: User) -> Client:
+    """``client`` that sends ``me``'s access token on every request."""
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {AccessToken.for_user(me)}"
+    return client
 
 
 @pytest.fixture(name="reload_base")

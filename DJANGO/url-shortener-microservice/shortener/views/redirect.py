@@ -3,8 +3,9 @@
 from django.db.models import Q
 from django.http import HttpResponseRedirect
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound
+from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 
 from shortener.models import ShortURL
@@ -23,6 +24,7 @@ from url_shortener.exceptions import ErrorSerializer, Gone
     }
 )
 @api_view(["GET"])
+@permission_classes([AllowAny])  # public: anyone with the link
 def redirect_to_original(request: Request, short_code: str) -> HttpResponseRedirect:
     """302 to the saved URL (temporary, so later clicks still reach us).
 

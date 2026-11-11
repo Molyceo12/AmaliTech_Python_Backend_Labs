@@ -14,6 +14,7 @@ NOT_ALLOWED = 'Method "DELETE" not allowed.'
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("auth_client")
 def test_valid_url_returns_201_and_a_short_link(client: Client) -> None:
     """A valid URL is saved; the body has status code, message and the URL."""
     response = client.post(
@@ -23,12 +24,17 @@ def test_valid_url_returns_201_and_a_short_link(client: Client) -> None:
     body = response.json()
     assert (body["status_code"], body["message"]) == (201, "Short URL created.")
     detail = body["detail"]
-    assert (detail["tags"], detail["owner"], detail["is_active"]) == ([], None, True)
+    assert (detail["tags"], detail["owner"], detail["is_active"]) == (
+        [],
+        "me@example.com",
+        True,
+    )
     assert ShortURL.objects.get(short_code=detail["short_code"])
     assert detail["short_url"] == f"http://testserver/{detail['short_code']}/"
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("auth_client")
 @pytest.mark.parametrize(
     ("method", "data", "status", "detail"),
     [

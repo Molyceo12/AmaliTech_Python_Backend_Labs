@@ -126,6 +126,8 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication"
     ],
+    # Every API needs a token; open views say permission_classes = [AllowAny].
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     # JSON only, every response as {"status_code", "message", "detail"}.
     "DEFAULT_RENDERER_CLASSES": ["url_shortener.renderers.EnvelopeJSONRenderer"],
     "EXCEPTION_HANDLER": "url_shortener.exceptions.json_exception_handler",
