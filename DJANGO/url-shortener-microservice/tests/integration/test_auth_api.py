@@ -113,6 +113,16 @@ def test_refresh_gives_a_new_access_token(client: Client) -> None:
     assert "access" in response.json()["detail"]
 
 
+@pytest.mark.usefixtures("user")
+def test_sixth_login_in_a_minute_gets_429(client: Client) -> None:
+    """5 tries pass (even wrong ones); the 6th is refused, even if it is right."""
+    for _ in range(5):
+        assert _login(client, password="wrong-guess").status_code == 401
+    response = _login(client)
+    assert response.status_code == 429
+    assert response.json()["message"].startswith("Request was throttled.")
+
+
 def test_bad_tokens_get_401(client: Client) -> None:
     """A broken refresh token, or a broken access token on any API call → 401."""
     assert _refresh(client, "not-a-token").status_code == 401

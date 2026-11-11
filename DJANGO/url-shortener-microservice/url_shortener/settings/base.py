@@ -132,6 +132,9 @@ REST_FRAMEWORK = {
     # Lists come in pages: {"count", "next", "previous", "results"}.
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    # Views pick a scope with throttle_scope. "login": 5 tries per minute per IP,
+    # against password guessing. Counted in local memory (Redis in Module 8).
+    "DEFAULT_THROTTLE_RATES": {"login": "5/min"},
 }
 # JWTs are signed with SECRET_KEY. A short access token limits the harm of a stolen
 # one; the refresh token gets a new access token without logging in again.

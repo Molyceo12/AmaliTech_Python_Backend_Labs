@@ -3,6 +3,7 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from accounts.serializers import LoginSerializer, RegisterSerializer
@@ -21,11 +22,16 @@ class RegisterView(generics.CreateAPIView):  # type: ignore[type-arg]
     success_messages = {"POST": "Account created."}
 
 
-@extend_schema(responses={200: LoginSerializer, **TOKEN_ERRORS})
+@extend_schema(responses={200: LoginSerializer, 429: ErrorSerializer, **TOKEN_ERRORS})
 class LoginView(TokenObtainPairView):
-    """Email + password → ``access`` (15 min) and ``refresh`` (1 day) tokens."""
+    """Email + password → ``access`` (15 min) and ``refresh`` (1 day) tokens.
+
+    5 tries per minute per IP; the 6th gets ``429``.
+    """
 
     serializer_class = LoginSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "login"
     success_messages = {"POST": "Logged in."}
 
 
