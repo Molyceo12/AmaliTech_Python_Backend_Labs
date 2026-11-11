@@ -22,7 +22,10 @@ SERVER_ERROR = {
 @pytest.mark.parametrize(
     ("target", "call"),
     [
-        ("shortener.views.short_url.create_short_url", ("post", "/api/v1/urls/")),
+        (
+            "shortener.views.short_url.list_create.create_short_url",
+            ("post", "/api/v1/urls/"),
+        ),
         ("shortener.models.ShortURL.objects.filter", ("get", "/abc1234/")),
     ],
 )
