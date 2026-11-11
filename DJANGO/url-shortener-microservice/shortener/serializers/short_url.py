@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import Any
+from urllib.parse import urlsplit
 
 from django.db.models import Q
 from django.utils import timezone
@@ -55,6 +56,12 @@ class ShortURLSerializer(serializers.ModelSerializer[ShortURL]):
         path = f"/{obj.short_code}/"
         request: Any = self.context.get("request")
         return str(request.build_absolute_uri(path)) if request else path
+
+    def validate_original_url(self, value: str) -> str:
+        """Only web links: Django's URL check also lets ``ftp://`` through."""
+        if urlsplit(value).scheme.lower() not in {"http", "https"}:
+            raise serializers.ValidationError("Only http and https URLs are allowed.")
+        return value
 
     def validate_custom_alias(self, value: str | None) -> str | None:
         """Reserved names → 400; used as an alias or short code → 409."""

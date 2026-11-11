@@ -1,4 +1,4 @@
-"""Tier rules on ``/api/v1/urls/``: Free users get 10 active URLs and no alias."""
+"""Rules on ``/api/v1/urls/`` input: tier limits and safe URLs."""
 
 from datetime import timedelta
 from typing import Any
@@ -92,3 +92,26 @@ def test_premium_user_can_use_an_alias(client: Client) -> None:
     response = _post(client, custom_alias="docs")
     assert response.status_code == 201
     assert response.json()["detail"]["custom_alias"] == "docs"
+
+
+@pytest.mark.parametrize(
+    ("url", "error"),
+    [
+        ("ftp://example.com/file", "Only http and https URLs are allowed."),
+        ("javascript:alert(1)", "Enter a valid URL."),
+        ("example.com", "Enter a valid URL."),
+    ],
+)
+def test_only_http_and_https_urls_are_accepted(
+    client: Client, url: str, error: str
+) -> None:
+    """Other schemes or no scheme → 400."""
+    response = _post(client, original_url=url)
+    assert response.status_code == 400
+    assert response.json()["detail"]["original_url"] == [error]
+
+
+def test_url_is_saved_without_spaces(client: Client) -> None:
+    """Spaces around the URL are trimmed before saving."""
+    response = _post(client, original_url="  https://example.com/page  ")
+    assert response.json()["detail"]["original_url"] == "https://example.com/page"
