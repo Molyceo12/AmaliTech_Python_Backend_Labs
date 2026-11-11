@@ -4,6 +4,7 @@ Secrets and per-machine values come from environment variables or a ``.env``
 file (see ``.env.example``), never from the code.
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
@@ -121,12 +122,25 @@ LOGGING = {
 # drf-spectacular builds the OpenAPI schema shown at /api/docs/.
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Who is calling: read from the "Authorization: Bearer <access>" header.
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication"
+    ],
     # JSON only, every response as {"status_code", "message", "detail"}.
     "DEFAULT_RENDERER_CLASSES": ["url_shortener.renderers.EnvelopeJSONRenderer"],
     "EXCEPTION_HANDLER": "url_shortener.exceptions.json_exception_handler",
     # Lists come in pages: {"count", "next", "previous", "results"}.
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    # Views pick a scope with throttle_scope. "login": 5 tries per minute per IP,
+    # against password guessing. Counted in local memory (Redis in Module 8).
+    "DEFAULT_THROTTLE_RATES": {"login": "5/min"},
+}
+# JWTs are signed with SECRET_KEY. A short access token limits the harm of a stolen
+# one; the refresh token gets a new access token without logging in again.
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "URL Shortener API",

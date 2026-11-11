@@ -15,6 +15,7 @@ dependencies = [
     "psycopg[binary] (>=3.3.6,<4.0.0)",
     "gunicorn (>=26.2.0,<27.0.0)",
     "drf-spectacular (>=0.30.0,<0.31.0)",
+    "djangorestframework-simplejwt (>=5.5.1,<6.0.0)",
 ]
 
 [tool.poetry]

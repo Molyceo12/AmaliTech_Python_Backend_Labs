@@ -18,10 +18,12 @@ graph LR
     Views --> A(List + create<br/>/api/v1/urls/)
     Views --> B(Detail, update, delete<br/>/api/v1/urls/code/)
     Views --> C(Redirect<br/>/code/)
+    Views --> D(Register, login, refresh<br/>/api/v1/auth/)
 
     A --> DB[(PostgreSQL<br/>5432)]
     B --> DB
     C --> DB
+    D --> DB
 
     DB -->|JSON / 302| Client
 ```
@@ -32,6 +34,8 @@ graph LR
   - **URL API** (`/api/v1/urls/`): create, list (filters, 20 per page), detail with
     click stats, update and delete short URLs.
   - **Redirect** (`/<code or alias>/`): sends the visitor on (`302`) and saves a click.
+  - **Auth API** (`/api/v1/auth/`): register, log in for JWT tokens (5 tries per
+    minute), refresh the access token.
   - **Swagger** (`/api/docs/`) and **Django admin** (`/admin/`).
   - **Renderer**: gives every JSON response the same `{status_code, message, detail}` shape.
   - **Logs**: console and `logs/app.log`, kept in the `app_logs` volume.
@@ -93,6 +97,9 @@ docker compose exec web tail -f logs/app.log        # the log file
 
 | Method | Route | What it does |
 |---|---|---|
+| `POST` | `/api/v1/auth/register/` | creates an account (`email`, `username`, `password`); new users are `free` |
+| `POST` | `/api/v1/auth/login/` | `email` + `password` → `access` (15 min) and `refresh` (1 day) tokens; 5 tries per minute |
+| `POST` | `/api/v1/auth/refresh/` | `refresh` → a new `access` token |
 | `POST` | `/api/v1/urls/` | creates a short URL (optional alias, expiry, title, description, tags) |
 | `GET` | `/api/v1/urls/` | lists short URLs, 20 per page |
 | `GET` | `/api/v1/urls/<short_code>/` | shows one URL with `total_clicks` and `clicks_by_country` |
@@ -103,3 +110,7 @@ docker compose exec web tail -f logs/app.log        # the log file
 | `GET` | `/api/schema/` | OpenAPI schema |
 
 List filters: `?status=active`, `?status=expired`, `?ordering=popular` (can be combined).
+
+Using the token: log in, then send the `access` token on each request as
+`Authorization: Bearer <access>`. In Swagger, click **Authorize** and paste the
+`access` token. When it expires, get a new one from `/api/v1/auth/refresh/`.

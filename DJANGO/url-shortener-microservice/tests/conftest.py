@@ -5,8 +5,15 @@ from collections.abc import Iterator
 from types import ModuleType
 
 import pytest
+from django.core.cache import cache
 
 from url_shortener.settings import base
+
+
+@pytest.fixture(autouse=True)
+def _clear_cache() -> None:
+    """Start each test with empty rate limit counters (they live in the cache)."""
+    cache.clear()
 
 
 @pytest.fixture(name="reload_base")
