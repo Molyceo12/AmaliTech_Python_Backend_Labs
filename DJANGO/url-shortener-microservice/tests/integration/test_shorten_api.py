@@ -7,6 +7,7 @@ from django.test import Client
 
 from shortener.models import ShortURL
 from shortener.serializers import ShortURLSerializer
+from tests.helpers import make_url
 
 BAD_URL = "Enter a valid URL."
 NO_URL = "This field is required."
@@ -61,7 +62,5 @@ def test_bad_request_returns_the_json_error(
 @pytest.mark.django_db
 def test_short_url_without_a_request_is_a_path() -> None:
     """Outside a request the serializer still gives a usable path."""
-    short_url = ShortURL.objects.create(
-        original_url="https://example.com", short_code="abc1234"
-    )
+    short_url = make_url()
     assert ShortURLSerializer(short_url).data["short_url"] == "/abc1234/"

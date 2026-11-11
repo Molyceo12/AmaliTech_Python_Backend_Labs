@@ -28,7 +28,7 @@ def _is_taken(code: str) -> bool:
 def create_short_url(
     original_url: str,
     *,
-    owner: Any = None,
+    owner: Any,
     tags: Iterable[str] = (),
     **details: Any,
 ) -> ShortURL:

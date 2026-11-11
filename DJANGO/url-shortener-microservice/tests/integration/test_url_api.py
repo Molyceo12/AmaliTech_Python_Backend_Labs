@@ -12,18 +12,12 @@ from django.utils import timezone
 from accounts.models import User
 from shortener.models import Click, ShortURL, Tag
 from tests.helpers import expire
+from tests.helpers import make_url as _url
 
 # Every test here is logged in as "me": auth_client adds the token to client.
 pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("auth_client")]
 
 FUTURE = (timezone.now() + timedelta(days=7)).isoformat()
-
-
-def _url(code: str = "abc1234", **fields: Any) -> ShortURL:
-    """Save a short URL with the given code."""
-    return ShortURL.objects.create(
-        original_url="https://example.com/", short_code=code, **fields
-    )
 
 
 def _post(client: Client, **data: Any) -> Any:

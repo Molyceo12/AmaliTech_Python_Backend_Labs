@@ -10,6 +10,7 @@ from django.test import Client
 from rest_framework_simplejwt.tokens import AccessToken
 
 from accounts.models import User
+from tests.helpers import get_me
 from url_shortener.settings import base
 
 
@@ -22,7 +23,7 @@ def _clear_cache() -> None:
 @pytest.fixture(name="me")
 def fixture_me(db: None) -> User:  # pylint: disable=unused-argument
     """The logged-in user of ``auth_client``."""
-    return User.objects.create_user(email="me@example.com", username="me")
+    return get_me()
 
 
 @pytest.fixture(name="auth_client")

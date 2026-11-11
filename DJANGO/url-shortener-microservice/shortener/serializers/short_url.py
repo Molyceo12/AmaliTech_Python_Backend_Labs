@@ -25,9 +25,7 @@ class ShortURLSerializer(serializers.ModelSerializer[ShortURL]):
     )
     tags = TagNamesField(required=False)
     # The view sets the owner from the logged-in user; the client never does.
-    owner = serializers.EmailField(
-        source="owner.email", read_only=True, allow_null=True
-    )
+    owner = serializers.EmailField(source="owner.email", read_only=True)
 
     class Meta:
         """The client sends only what it may change."""
