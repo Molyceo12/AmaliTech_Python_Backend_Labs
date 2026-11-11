@@ -19,11 +19,13 @@ graph LR
     Views --> B(Detail, update, delete<br/>/api/v1/urls/code/)
     Views --> C(Redirect<br/>/code/)
     Views --> D(Register, login, refresh<br/>/api/v1/auth/)
+    Views --> E(Analytics<br/>/api/v1/analytics/code/)
 
     A --> DB[(PostgreSQL<br/>5432)]
     B --> DB
     C --> DB
     D --> DB
+    E --> DB
 
     DB -->|JSON / 302| Client
 ```
@@ -35,6 +37,8 @@ graph LR
     tag search, 20 per page), detail with click stats; only the owner can update or
     delete.
   - **Redirect** (`/<code or alias>/`): sends the visitor on (`302`) and saves a click.
+  - **Analytics** (`/api/v1/analytics/<code>/`, Premium / Admin, own URLs): clicks
+    per day and per country.
   - **Auth API** (`/api/v1/auth/`): register, log in for JWT tokens (5 tries per
     minute), refresh the access token.
   - **Swagger** (`/api/docs/`) and **Django admin** (`/admin/`).
@@ -106,6 +110,7 @@ docker compose exec web tail -f logs/app.log        # the log file
 | `GET` | `/api/v1/urls/<short_code>/` | shows one URL with `total_clicks` and `clicks_by_country` |
 | `PUT` / `PATCH` | `/api/v1/urls/<short_code>/` | changes a URL (owner only) |
 | `DELETE` | `/api/v1/urls/<short_code>/` | deletes a URL (owner only) |
+| `GET` | `/api/v1/analytics/<short_code>/` | total clicks, clicks per day and per country (Premium / Admin, own URLs) |
 | `GET` | `/<short_code or alias>/` | redirects to the original URL and records a click |
 | `GET` | `/api/docs/` | Swagger UI |
 | `GET` | `/api/schema/` | OpenAPI schema |
@@ -119,6 +124,7 @@ Tier rules (`403` when broken):
 |---|---|---|
 | Active URLs (switched on, not expired) | max 10 | unlimited |
 | Custom alias | no | yes |
+| Analytics | no | yes |
 
 Only `http` and `https` URLs are accepted; other schemes get `400`.
 
