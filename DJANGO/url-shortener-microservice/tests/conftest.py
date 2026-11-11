@@ -26,6 +26,14 @@ def fixture_me(db: None) -> User:  # pylint: disable=unused-argument
     return get_me()
 
 
+@pytest.fixture(name="premium")
+def fixture_premium(me: User) -> User:
+    """Make ``me`` a Premium user."""
+    me.tier = User.Tier.PREMIUM
+    me.save()
+    return me
+
+
 @pytest.fixture(name="auth_client")
 def fixture_auth_client(client: Client, me: User) -> Client:
     """``client`` that sends ``me``'s access token on every request."""

@@ -81,7 +81,7 @@ Admin user and sample data (seeders, dev only):
 
 ```bash
 python -m poetry run python manage.py createsuperuser   # email, username, password
-python -m poetry run python manage.py seed_dev          # 1 user, tags, 5 URLs, clicks
+python -m poetry run python manage.py seed_dev          # 2 users (Premium + Free), tags, 5 URLs, clicks
 ```
 
 Swagger UI: http://localhost:8000/api/docs/
@@ -112,6 +112,15 @@ docker compose exec web tail -f logs/app.log        # the log file
 
 List filters: `?status=active`, `?status=expired`, `?ordering=popular`, `?tag=<name>`
 (can be combined).
+
+Tier rules (`403` when broken):
+
+| Feature | Free | Premium / Admin |
+|---|---|---|
+| Active URLs (switched on, not expired) | max 10 | unlimited |
+| Custom alias | no | yes |
+
+Only `http` and `https` URLs are accepted; other schemes get `400`.
 
 Using the token: every `/api/v1/urls/` call needs a login (no token → `401`; someone
 else's URL → `403` on change or delete). Log in, then send the `access` token as

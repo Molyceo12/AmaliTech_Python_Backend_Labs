@@ -13,6 +13,7 @@ from accounts.models import User
 from shortener.models import Click, ShortURL, Tag
 
 SEED_EMAIL = "seed@example.com"
+FREE_EMAIL = "free@example.com"
 TAGS = ["docs", "python", "news", "shopping"]
 
 URLS: list[dict[str, Any]] = [
@@ -65,7 +66,7 @@ VISITORS = [
 
 
 class Command(BaseCommand):
-    """Create one user, tags, URLs and clicks; running it again adds nothing."""
+    """Create a Premium and a Free user, tags, URLs and clicks; a rerun adds nothing."""
 
     help = "Fill the dev database with seeders (refused when DEBUG is off)."
 
@@ -75,22 +76,18 @@ class Command(BaseCommand):
             raise CommandError("seed_dev only runs with DEBUG=True.")
         with transaction.atomic():
             counts = self._seed()
-        message = "Seeded {users} user, {tags} tags, {urls} URLs, {clicks} clicks."
+        message = "Seeded {users} users, {tags} tags, {urls} URLs, {clicks} clicks."
         self.stdout.write(
             message.format(**counts) if any(counts.values()) else "Nothing new."
         )
 
     def _seed(self) -> dict[str, int]:
         """Create what is missing and count it."""
-        user, user_created = User.objects.get_or_create(
-            email=SEED_EMAIL,
-            defaults={"username": "seed", "tier": User.Tier.PREMIUM},
-        )
-        if user_created:
-            _set_password(user)
+        user, user_created = _get_or_create_user(SEED_EMAIL, User.Tier.PREMIUM)
+        _, free_created = _get_or_create_user(FREE_EMAIL, User.Tier.FREE)
         tags = {name: Tag.objects.get_or_create(name=name) for name in TAGS}
         counts = {
-            "users": int(user_created),
+            "users": user_created + free_created,
             "tags": sum(created for _, created in tags.values()),
             "urls": 0,
             "clicks": 0,
@@ -102,6 +99,16 @@ class Command(BaseCommand):
                 counts["urls"] += 1
                 counts["clicks"] += _add_clicks(url, data["clicks"])
         return counts
+
+
+def _get_or_create_user(email: str, tier: str) -> tuple[User, bool]:
+    """Find the user by email, or create it with the seed password."""
+    user, created = User.objects.get_or_create(
+        email=email, defaults={"username": email.split("@")[0], "tier": tier}
+    )
+    if created:
+        _set_password(user)
+    return user, created
 
 
 def _set_password(user: User) -> None:

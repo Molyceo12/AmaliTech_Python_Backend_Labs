@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import Any
+from urllib.parse import urlsplit
 
 from django.db.models import Q
 from django.utils import timezone
@@ -9,6 +10,7 @@ from rest_framework import serializers
 
 from shortener.models import ShortURL
 from shortener.serializers.fields import TagNamesField
+from shortener.services.limits import check_active_limit, check_alias_allowed
 from shortener.services.short_codes import set_tags
 from url_shortener.exceptions import Conflict
 
@@ -55,6 +57,12 @@ class ShortURLSerializer(serializers.ModelSerializer[ShortURL]):
         request: Any = self.context.get("request")
         return str(request.build_absolute_uri(path)) if request else path
 
+    def validate_original_url(self, value: str) -> str:
+        """Only web links: Django's URL check also lets ``ftp://`` through."""
+        if urlsplit(value).scheme.lower() not in {"http", "https"}:
+            raise serializers.ValidationError("Only http and https URLs are allowed.")
+        return value
+
     def validate_custom_alias(self, value: str | None) -> str | None:
         """Reserved names → 400; used as an alias or short code → 409."""
         if value is None:
@@ -73,6 +81,17 @@ class ShortURLSerializer(serializers.ModelSerializer[ShortURL]):
         if value is not None and value <= timezone.now():
             raise serializers.ValidationError("Must be in the future.")
         return value
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Apply the tier rules for the logged-in user."""
+        user = self.context["request"].user
+        alias = attrs.get("custom_alias")
+        if alias and alias != getattr(self.instance, "custom_alias", None):
+            check_alias_allowed(user)
+        was_active = self.instance.is_active if self.instance else False
+        if attrs.get("is_active") and not was_active:
+            check_active_limit(user)
+        return attrs
 
     def update(self, instance: ShortURL, validated_data: dict[str, Any]) -> ShortURL:
         """Save the fields, then the tags (names, not ``Tag`` objects)."""

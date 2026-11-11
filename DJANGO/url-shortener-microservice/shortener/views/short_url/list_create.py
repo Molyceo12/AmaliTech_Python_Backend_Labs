@@ -21,7 +21,12 @@ from url_shortener.exceptions import ERRORS, ErrorSerializer
         responses={200: ShortURLSerializer(many=True), **ERRORS},
     ),
     post=extend_schema(
-        responses={201: ShortURLCreatedSerializer, 409: ErrorSerializer, **ERRORS}
+        responses={
+            201: ShortURLCreatedSerializer,
+            403: ErrorSerializer,
+            409: ErrorSerializer,
+            **ERRORS,
+        }
     ),
 )
 class ShortURLListCreateView(generics.ListCreateAPIView):  # type: ignore[type-arg]
