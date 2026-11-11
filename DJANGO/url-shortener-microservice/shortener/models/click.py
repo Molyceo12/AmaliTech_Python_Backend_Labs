@@ -18,10 +18,9 @@ class Click(models.Model):
     referrer = models.URLField(max_length=2048, null=True, blank=True)  # noqa: DJ001
 
     class Meta:
-        """Newest clicks first; indexed for "clicks of one URL over time"."""
+        """Newest clicks first."""
 
         ordering = ["-clicked_at"]
-        indexes = [models.Index(fields=["url", "clicked_at"])]
 
     def __str__(self) -> str:
         """Show which URL was clicked and when."""
