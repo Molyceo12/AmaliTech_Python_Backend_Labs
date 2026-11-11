@@ -116,6 +116,15 @@ def test_list_is_paginated(client: Client) -> None:
     assert [item["short_code"] for item in body["results"]] == ["bbb2222", "aaa1111"]
 
 
+def test_list_shows_only_my_urls(client: Client) -> None:
+    """Another user's URL is not in my list."""
+    _url("mine111")
+    ana = User.objects.create_user(email="ana@example.com", username="ana")
+    _url("anas111", owner=ana)
+    results = client.get("/api/v1/urls/").json()["detail"]["results"]
+    assert [url["short_code"] for url in results] == ["mine111"]
+
+
 def test_list_filters_and_ordering(client: Client) -> None:
     """``?status=`` and ``?ordering=`` use the branch 6 queries."""
     _url("live111", click_count=1)
@@ -145,7 +154,6 @@ def test_unknown_filter_returns_400(client: Client, query: str, message: str) ->
 
 def test_list_query_count_does_not_grow(client: Client) -> None:
     """Owners and tags are loaded together, so 5 URLs cost what 1 does."""
-    user = User.objects.create_user(email="ana@example.com", username="ana")
     tag = Tag.objects.create(name="docs")
 
     def queries_for_list() -> int:
@@ -153,10 +161,10 @@ def test_list_query_count_does_not_grow(client: Client) -> None:
             client.get("/api/v1/urls/")
         return len(queries)
 
-    _url("url0000", owner=user).tags.add(tag)
+    _url("url0000").tags.add(tag)
     one = queries_for_list()
     for number in range(1, 5):
-        _url(f"url000{number}", owner=user).tags.add(tag)
+        _url(f"url000{number}").tags.add(tag)
     assert queries_for_list() == one
 
 

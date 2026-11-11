@@ -40,14 +40,18 @@ DETAIL_ERRORS = {**ERRORS, 404: ErrorSerializer}
     ),
 )
 class ShortURLListCreateView(generics.ListCreateAPIView):  # type: ignore[type-arg]
-    """List short URLs (20 per page), or save a long URL under a new code."""
+    """List your own short URLs (20 per page), or save a long URL under a new code."""
 
     serializer_class = ShortURLSerializer
     success_messages = {"GET": "Short URLs loaded.", "POST": "Short URL created."}
 
     def get_queryset(self) -> QuerySet[ShortURL]:
-        """One query for URLs + owners, one for all their tags (no N+1)."""
-        queryset = ShortURL.objects.select_related("owner").prefetch_related("tags")
+        """Only the user's URLs: one query for URLs + owners, one for tags (no N+1)."""
+        queryset = (
+            ShortURL.objects.filter(owner_id=self.request.user.pk)
+            .select_related("owner")
+            .prefetch_related("tags")
+        )
         return apply_filters(queryset, self.request.query_params)
 
     def perform_create(self, serializer: ShortURLSerializer) -> None:  # type: ignore[override]
