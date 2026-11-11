@@ -31,8 +31,9 @@ graph LR
 ### Services overview
 
 - **Web (`web`)**: Gunicorn runs Django on port `8000`.
-  - **URL API** (`/api/v1/urls/`): create, list (filters, 20 per page), detail with
-    click stats, update and delete short URLs.
+  - **URL API** (`/api/v1/urls/`, login needed): create, list your own URLs (filters,
+    tag search, 20 per page), detail with click stats; only the owner can update or
+    delete.
   - **Redirect** (`/<code or alias>/`): sends the visitor on (`302`) and saves a click.
   - **Auth API** (`/api/v1/auth/`): register, log in for JWT tokens (5 tries per
     minute), refresh the access token.
@@ -100,17 +101,19 @@ docker compose exec web tail -f logs/app.log        # the log file
 | `POST` | `/api/v1/auth/register/` | creates an account (`email`, `username`, `password`); new users are `free` |
 | `POST` | `/api/v1/auth/login/` | `email` + `password` → `access` (15 min) and `refresh` (1 day) tokens; 5 tries per minute |
 | `POST` | `/api/v1/auth/refresh/` | `refresh` → a new `access` token |
-| `POST` | `/api/v1/urls/` | creates a short URL (optional alias, expiry, title, description, tags) |
-| `GET` | `/api/v1/urls/` | lists short URLs, 20 per page |
+| `POST` | `/api/v1/urls/` | creates a short URL owned by you (optional alias, expiry, title, description, tags) |
+| `GET` | `/api/v1/urls/` | lists your own short URLs, 20 per page |
 | `GET` | `/api/v1/urls/<short_code>/` | shows one URL with `total_clicks` and `clicks_by_country` |
-| `PUT` / `PATCH` | `/api/v1/urls/<short_code>/` | changes a URL |
-| `DELETE` | `/api/v1/urls/<short_code>/` | deletes a URL |
+| `PUT` / `PATCH` | `/api/v1/urls/<short_code>/` | changes a URL (owner only) |
+| `DELETE` | `/api/v1/urls/<short_code>/` | deletes a URL (owner only) |
 | `GET` | `/<short_code or alias>/` | redirects to the original URL and records a click |
 | `GET` | `/api/docs/` | Swagger UI |
 | `GET` | `/api/schema/` | OpenAPI schema |
 
-List filters: `?status=active`, `?status=expired`, `?ordering=popular` (can be combined).
+List filters: `?status=active`, `?status=expired`, `?ordering=popular`, `?tag=<name>`
+(can be combined).
 
-Using the token: log in, then send the `access` token on each request as
-`Authorization: Bearer <access>`. In Swagger, click **Authorize** and paste the
+Using the token: every `/api/v1/urls/` call needs a login (no token → `401`; someone
+else's URL → `403` on change or delete). Log in, then send the `access` token as
+`Authorization: Bearer <access>`. Register, login, refresh and the redirect are open. In Swagger, click **Authorize** and paste the
 `access` token. When it expires, get a new one from `/api/v1/auth/refresh/`.
