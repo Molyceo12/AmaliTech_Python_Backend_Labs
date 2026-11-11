@@ -15,7 +15,6 @@ from shortener.models import Click, ShortURL, Tag
 SEED_EMAIL = "seed@example.com"
 TAGS = ["docs", "python", "news", "shopping"]
 
-# One URL per case the API handles: active, popular, alias, switched off, expired.
 URLS: list[dict[str, Any]] = [
     {
         "short_code": "seedact",

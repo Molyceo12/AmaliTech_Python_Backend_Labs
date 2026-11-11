@@ -38,7 +38,6 @@ def test_creates_user_tags_urls_and_clicks() -> None:
     # 2 default tags from the migration + 4 seed tags.
     assert (Tag.objects.count(), Click.objects.count()) == (6, 12)
     assert ShortURL.objects.filter(owner=user).count() == 5
-    # Every case: active, popular, alias, switched off, expired.
     assert ShortURL.objects.active_urls().count() == 3
     assert list(
         ShortURL.objects.expired_urls().values_list("short_code", flat=True)
@@ -46,7 +45,6 @@ def test_creates_user_tags_urls_and_clicks() -> None:
     assert ShortURL.objects.popular_urls().first().short_code == "seedhot"  # type: ignore[union-attr]
     assert ShortURL.objects.get(custom_alias="daily-news").short_code == "seedals"
     assert ShortURL.objects.get(short_code="seedoff").is_active is False
-    # click_count equals the saved Click rows of each URL.
     for url in ShortURL.objects.annotate(total=Count("clicks")):
         assert url.click_count == url.total
 

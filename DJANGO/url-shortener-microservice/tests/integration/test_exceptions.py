@@ -37,7 +37,6 @@ def test_crash_returns_json_500_and_logs(
     call: tuple[str, str],
 ) -> None:
     """A database error in the API or the redirect → JSON 500 + logged traceback."""
-    # A fake database call that fails, and remembers it was called.
     crash = MagicMock(side_effect=DatabaseError("database is down"))
     monkeypatch.setattr(target, crash)
     method, path = call

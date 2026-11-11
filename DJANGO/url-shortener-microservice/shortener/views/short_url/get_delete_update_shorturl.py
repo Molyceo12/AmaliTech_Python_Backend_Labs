@@ -15,7 +15,6 @@ from shortener.serializers import ShortURLDetailSerializer
 from url_shortener.exceptions import ERRORS, ErrorSerializer
 
 DETAIL_ERRORS = {**ERRORS, 404: ErrorSerializer}
-# Only the owner may change or delete.
 CHANGE_ERRORS = {**DETAIL_ERRORS, 403: ErrorSerializer, 409: ErrorSerializer}
 
 

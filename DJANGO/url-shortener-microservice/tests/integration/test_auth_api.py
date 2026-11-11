@@ -58,9 +58,6 @@ def test_register_refuses_bad_input(
     assert User.objects.count() == 1
 
 
-# --- login and refresh --------------------------------------------------
-
-
 @pytest.fixture(name="user")
 def fixture_user() -> User:
     """A saved user who can log in with ``PASSWORD``."""

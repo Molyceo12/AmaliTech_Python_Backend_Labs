@@ -7,7 +7,6 @@ from rest_framework.exceptions import ValidationError
 
 from shortener.models import ShortURL
 
-# ?status= picks one of the custom queries on ShortURLQuerySet.
 STATUS_QUERIES = {"active": "active_urls", "expired": "expired_urls"}
 ORDERINGS = ["popular"]
 

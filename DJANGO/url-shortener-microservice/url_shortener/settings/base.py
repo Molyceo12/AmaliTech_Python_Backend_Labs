@@ -69,7 +69,6 @@ DATABASES = {
     )
 }
 
-# Our own user (accounts/models/user.py): email login, tier.
 AUTH_USER_MODEL = "accounts.User"
 
 # Password of the seed_dev user; empty means that user can't log in.
@@ -96,7 +95,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Print logs (and server error tracebacks) to the console, also with DEBUG off,
 # so `docker compose logs web` shows them.
-# Also saved to logs/app.log: 5 MB per file, the last 3 files kept.
 LOG_DIR = BASE_DIR / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 LOGGING = {
@@ -119,19 +117,15 @@ LOGGING = {
     "root": {"handlers": ["console", "file"], "level": "INFO"},
 }
 
-# drf-spectacular builds the OpenAPI schema shown at /api/docs/.
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    # Who is calling: read from the "Authorization: Bearer <access>" header.
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication"
     ],
     # Every API needs a token; open views say permission_classes = [AllowAny].
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
-    # JSON only, every response as {"status_code", "message", "detail"}.
     "DEFAULT_RENDERER_CLASSES": ["url_shortener.renderers.EnvelopeJSONRenderer"],
     "EXCEPTION_HANDLER": "url_shortener.exceptions.json_exception_handler",
-    # Lists come in pages: {"count", "next", "previous", "results"}.
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
     # Views pick a scope with throttle_scope. "login": 5 tries per minute per IP,

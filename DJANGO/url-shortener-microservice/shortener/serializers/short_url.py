@@ -24,7 +24,6 @@ class ShortURLSerializer(serializers.ModelSerializer[ShortURL]):
         r"^[A-Za-z0-9-]+$", max_length=50, required=False, allow_null=True
     )
     tags = TagNamesField(required=False)
-    # The view sets the owner from the logged-in user; the client never does.
     owner = serializers.EmailField(source="owner.email", read_only=True)
 
     class Meta:

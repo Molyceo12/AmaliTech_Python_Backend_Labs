@@ -26,9 +26,6 @@ def _post(client: Client, **data: Any) -> Any:
     return client.post("/api/v1/urls/", body, content_type="application/json")
 
 
-# --- create -------------------------------------------------------------
-
-
 def test_create_with_alias_expiry_tags_and_details(client: Client) -> None:
     """Every optional field is saved; tags are trimmed, lowercased and reused."""
     Tag.objects.create(name="python")
@@ -100,9 +97,6 @@ def test_bad_alias_or_past_expiry_returns_400(
     assert response.status_code == 400
     assert field in response.json()["detail"]
     assert not ShortURL.objects.exists()
-
-
-# --- list ---------------------------------------------------------------
 
 
 def test_list_is_paginated(client: Client) -> None:
@@ -181,9 +175,6 @@ def test_list_query_count_does_not_grow(client: Client) -> None:
     for number in range(1, 5):
         _url(f"url000{number}").tags.add(tag)
     assert queries_for_list() == one
-
-
-# --- detail, update, delete ---------------------------------------------
 
 
 @pytest.mark.parametrize(
