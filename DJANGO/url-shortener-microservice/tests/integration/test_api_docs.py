@@ -46,9 +46,9 @@ def test_schema_lists_every_endpoint_with_its_codes(
 
 
 def test_list_documents_its_filters(paths: dict[str, Any]) -> None:
-    """``?status=`` and ``?ordering=`` show up in Swagger."""
+    """``?status=``, ``?ordering=`` and ``?tag=`` show up in Swagger."""
     names = {param["name"] for param in paths["/api/v1/urls/"]["get"]["parameters"]}
-    assert {"status", "ordering", "page"} <= names
+    assert {"status", "ordering", "tag", "page"} <= names
 
 
 def test_swagger_ui_loads(client: Client) -> None:

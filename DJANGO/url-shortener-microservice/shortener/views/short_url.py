@@ -36,6 +36,7 @@ CHANGE_ERRORS = {**DETAIL_ERRORS, 403: ErrorSerializer, 409: ErrorSerializer}
         parameters=[
             OpenApiParameter("status", enum=list(STATUS_QUERIES)),
             OpenApiParameter("ordering", enum=ORDERINGS),
+            OpenApiParameter("tag", description="Only URLs with this tag."),
         ],
         responses={200: ShortURLSerializer(many=True), **ERRORS},
     ),

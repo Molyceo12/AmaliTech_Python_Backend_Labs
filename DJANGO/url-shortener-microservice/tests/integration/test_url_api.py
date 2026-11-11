@@ -142,6 +142,21 @@ def test_list_filters_and_ordering(client: Client) -> None:
     assert codes("status=active&ordering=popular") == ["hot1111", "live111"]
 
 
+def test_tag_search_in_any_case_and_with_status(client: Client) -> None:
+    """``?tag=`` keeps URLs with that tag; it works together with ``?status=``."""
+    python = Tag.objects.create(name="python")
+    _url("py11111").tags.add(python)
+    _url("pyoff11", is_active=False).tags.add(python)
+    _url("web1111").tags.add(Tag.objects.create(name="web"))
+
+    def codes(query: str) -> list[str]:
+        results = client.get(f"/api/v1/urls/?{query}").json()["detail"]["results"]
+        return sorted(url["short_code"] for url in results)
+
+    assert codes("tag=PYTHON") == ["py11111", "pyoff11"]
+    assert codes("tag=python&status=active") == ["py11111"]
+
+
 @pytest.mark.parametrize(
     ("query", "message"),
     [("status=old", "Use active or expired."), ("ordering=newest", "Use popular.")],
