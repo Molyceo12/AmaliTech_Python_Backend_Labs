@@ -9,6 +9,7 @@ from rest_framework import serializers
 
 from shortener.models import ShortURL
 from shortener.serializers.fields import TagNamesField
+from shortener.services.limits import check_active_limit
 from shortener.services.short_codes import set_tags
 from url_shortener.exceptions import Conflict
 
@@ -73,6 +74,13 @@ class ShortURLSerializer(serializers.ModelSerializer[ShortURL]):
         if value is not None and value <= timezone.now():
             raise serializers.ValidationError("Must be in the future.")
         return value
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Apply the tier rules for the logged-in user."""
+        was_active = self.instance.is_active if self.instance else False
+        if attrs.get("is_active") and not was_active:
+            check_active_limit(self.context["request"].user)
+        return attrs
 
     def update(self, instance: ShortURL, validated_data: dict[str, Any]) -> ShortURL:
         """Save the fields, then the tags (names, not ``Tag`` objects)."""
