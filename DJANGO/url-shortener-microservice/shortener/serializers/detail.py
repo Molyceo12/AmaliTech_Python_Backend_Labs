@@ -8,6 +8,7 @@ from rest_framework import serializers
 from shortener.models import ShortURL
 from shortener.serializers.schema import CountryClicksSerializer
 from shortener.serializers.short_url import ShortURLSerializer
+from shortener.services.limits import has_paid_tier
 
 
 class ShortURLDetailSerializer(ShortURLSerializer):
@@ -20,6 +21,14 @@ class ShortURLDetailSerializer(ShortURLSerializer):
         """Same fields plus the click totals."""
 
         fields = [*ShortURLSerializer.Meta.fields, "total_clicks", "clicks_by_country"]
+
+    def get_fields(self) -> dict[str, Any]:
+        """Country stats are geo analytics: only paid tiers get them."""
+        fields: dict[str, Any] = super().get_fields()
+        request = self.context.get("request")
+        if request is not None and not has_paid_tier(request.user):
+            fields.pop("clicks_by_country")
+        return fields
 
     @extend_schema_field(CountryClicksSerializer(many=True))
     def get_clicks_by_country(self, url: ShortURL) -> list[dict[str, Any]]:

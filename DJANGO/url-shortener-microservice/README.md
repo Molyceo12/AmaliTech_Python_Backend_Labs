@@ -107,7 +107,7 @@ docker compose exec web tail -f logs/app.log        # the log file
 | `POST` | `/api/v1/auth/refresh/` | `refresh` → a new `access` token |
 | `POST` | `/api/v1/urls/` | creates a short URL owned by you (optional alias, expiry, title, description, tags) |
 | `GET` | `/api/v1/urls/` | lists your own short URLs, 20 per page |
-| `GET` | `/api/v1/urls/<short_code or alias>/` | shows one URL with `total_clicks` and `clicks_by_country` |
+| `GET` | `/api/v1/urls/<short_code or alias>/` | shows one URL with `total_clicks` (+ `clicks_by_country` for Premium / Admin) |
 | `PUT` / `PATCH` | `/api/v1/urls/<short_code or alias>/` | changes a URL (owner only) |
 | `DELETE` | `/api/v1/urls/<short_code or alias>/` | deletes a URL (owner only) |
 | `GET` | `/api/v1/analytics/<short_code or alias>/` | total clicks, clicks per day and per country (Premium / Admin, own URLs) |

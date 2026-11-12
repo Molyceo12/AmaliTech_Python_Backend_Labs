@@ -5,7 +5,7 @@ from typing import Any
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 
-from accounts.models import User
+from shortener.services.limits import has_paid_tier
 
 
 class IsOwnerOrReadOnly(BasePermission):
@@ -35,7 +35,4 @@ class IsPremium(BasePermission):
 
     def has_permission(self, request: Request, view: Any) -> bool:
         """The user's tier is Premium or Admin."""
-        return getattr(request.user, "tier", None) in {
-            User.Tier.PREMIUM,
-            User.Tier.ADMIN,
-        }
+        return has_paid_tier(request.user)

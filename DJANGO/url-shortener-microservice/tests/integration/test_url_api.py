@@ -192,6 +192,7 @@ def test_list_query_count_does_not_grow(client: Client) -> None:
         ),
     ],
 )
+@pytest.mark.usefixtures("premium")
 def test_detail_shows_click_totals(
     client: Client, countries: list[str], by_country: list[dict[str, Any]]
 ) -> None:
@@ -203,6 +204,14 @@ def test_detail_shows_click_totals(
     detail = response.json()["detail"]
     assert (response.status_code, detail["total_clicks"]) == (200, len(countries))
     assert detail["clicks_by_country"] == by_country
+
+
+def test_free_user_gets_detail_without_country_stats(client: Client) -> None:
+    """Country stats are geo analytics: Premium only. Totals stay."""
+    Click.objects.create(url=_url(), country="Rwanda")
+    detail = client.get("/api/v1/urls/abc1234/").json()["detail"]
+    assert detail["total_clicks"] == 1
+    assert "clicks_by_country" not in detail
 
 
 def test_detail_query_count_does_not_grow_with_clicks(client: Client) -> None:
