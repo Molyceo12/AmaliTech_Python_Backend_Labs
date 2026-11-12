@@ -279,6 +279,27 @@ def test_unknown_code_returns_404(client: Client, method: str) -> None:
     assert response.status_code == 404
 
 
+def test_detail_update_and_delete_by_alias(client: Client) -> None:
+    """``/api/v1/urls/<alias>/`` works like the short code."""
+    _url(custom_alias="docs")
+    assert client.get("/api/v1/urls/docs/").json()["detail"]["short_code"] == "abc1234"
+    response = client.patch(
+        "/api/v1/urls/docs/", {"title": "Docs"}, content_type="application/json"
+    )
+    assert response.status_code == 200
+    assert ShortURL.objects.get().title == "Docs"
+    assert client.delete("/api/v1/urls/docs/").status_code == 200
+    assert not ShortURL.objects.exists()
+
+
+def test_someone_elses_url_by_alias_is_still_403(client: Client) -> None:
+    """The owner check runs after the alias lookup."""
+    ana = User.objects.create_user(email="ana@example.com", username="ana")
+    _url(owner=ana, custom_alias="docs")
+    response = client.delete("/api/v1/urls/docs/")
+    assert response.status_code == 403
+
+
 def test_anyone_logged_in_can_read_another_users_url(client: Client) -> None:
     """The "ReadOnly" part: GET works on a URL I don't own."""
     _url(owner=User.objects.create_user(email="ana@example.com", username="ana"))

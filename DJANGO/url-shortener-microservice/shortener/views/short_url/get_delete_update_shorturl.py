@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from shortener.models import ShortURL
 from shortener.permissions import IsOwnerOrReadOnly
 from shortener.serializers import ShortURLDetailSerializer
+from shortener.views.lookup import get_by_code_or_alias
 from url_shortener.exceptions import ERRORS, ErrorSerializer
 
 DETAIL_ERRORS = {**ERRORS, 404: ErrorSerializer}
@@ -32,7 +33,7 @@ CHANGE_ERRORS = {**DETAIL_ERRORS, 403: ErrorSerializer, 409: ErrorSerializer}
     ),
 )
 class ShortURLDetailView(generics.RetrieveUpdateDestroyAPIView):  # type: ignore[type-arg]
-    """Show one short URL; its owner can also change or delete it."""
+    """Show one short URL (by code or alias); its owner can also change or delete it."""
 
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     serializer_class = ShortURLDetailSerializer
@@ -42,13 +43,16 @@ class ShortURLDetailView(generics.RetrieveUpdateDestroyAPIView):  # type: ignore
         "PATCH": "Short URL updated.",
         "DELETE": "Short URL deleted.",
     }
-    lookup_field = "short_code"
     # The database counts the clicks: one query, not one per click.
     queryset = (
         ShortURL.objects.select_related("owner")
         .prefetch_related("tags")
         .annotate(total_clicks=Count("clicks"))
     )
+
+    def get_object(self) -> ShortURL:
+        """By short code or alias."""
+        return get_by_code_or_alias(self)
 
     def destroy(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """Delete, then answer 200 (not 204) so the client gets a toast message."""

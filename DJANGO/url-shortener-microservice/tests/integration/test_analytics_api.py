@@ -29,6 +29,15 @@ def test_premium_owner_gets_the_numbers(client: Client, me: User, tier: str) -> 
     assert detail["clicks_by_country"] == [{"country": "Rwanda", "total": 1}]
 
 
+@pytest.mark.usefixtures("premium")
+def test_analytics_by_alias(client: Client) -> None:
+    """``/api/v1/analytics/<alias>/`` works like the short code."""
+    make_url(custom_alias="docs")
+    response = client.get("/api/v1/analytics/docs/")
+    assert response.status_code == 200
+    assert response.json()["detail"]["short_code"] == "abc1234"
+
+
 def test_free_user_gets_403(client: Client) -> None:
     """Analytics are a Premium feature."""
     make_url()
