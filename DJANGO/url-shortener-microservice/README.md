@@ -32,7 +32,8 @@ graph LR
 
 ### Services overview
 
-- **Web (`web`)**: Gunicorn runs Django on port `8000`.
+- **Web (`web`, prod)**: Gunicorn runs Django on port `8000`; **`web-dev`** runs the
+  same app with `runserver` and dev settings instead.
   - **URL API** (`/api/v1/urls/`, login needed): create, list your own URLs (filters,
     tag search, 20 per page), detail with click stats; only the owner can update or
     delete.
@@ -55,12 +56,13 @@ cd AmaliTech_Python_Backend_Labs/DJANGO/url-shortener-microservice
 cp .env.example .env              # SECRET_KEY, ALLOWED_HOSTS, POSTGRES_*
 ```
 
-With Docker (Gunicorn + PostgreSQL 16):
+With Docker (PostgreSQL 16), pick prod or dev; both use port `8000`, so run one:
 
 ```bash
-docker compose up --build -d       # start (Gunicorn + PostgreSQL)
-docker compose run --rm seed       # add the sample data (seeders)
-docker compose down -v             # stop and delete the database (fresh start)
+docker compose --profile prod up --build -d   # prod: Gunicorn, prod settings
+docker compose --profile dev up --build       # dev: runserver, DEBUG on (admin CSS works)
+docker compose run --rm seed                  # add the sample data (seeders)
+docker compose --profile prod --profile dev down -v   # stop and delete the database
 ```
 
 Without Docker (SQLite):

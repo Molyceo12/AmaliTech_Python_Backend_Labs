@@ -1,4 +1,17 @@
-# web (Django + Gunicorn) and db (PostgreSQL). Values come from .env.
+# db (PostgreSQL) plus the app in prod (Gunicorn) or dev (runserver). Values come from .env.
+# Pick one: `docker compose --profile prod up` or `docker compose --profile dev up`.
+
+x-app: &app
+  build: .
+  env_file: .env
+  depends_on:
+    db:
+      condition: service_healthy
+
+# Set here, not in .env, so a local runserver keeps using SQLite.
+x-database-url: &database-url
+  DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+
 services:
   db:
     image: postgres:16
@@ -20,12 +33,11 @@ services:
       retries: 10
 
   web:
-    build: .
+    <<: *app
+    profiles: ["prod"]
     restart: unless-stopped
-    env_file: .env
     environment:
-      # Set here, not in .env, so a local runserver keeps using SQLite.
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      <<: *database-url
     command: >
       sh -c "python manage.py migrate --noinput &&
              gunicorn url_shortener.wsgi:application --bind 0.0.0.0:8000 --workers 3"
@@ -34,24 +46,29 @@ services:
     # Keep logs/app.log when the container is rebuilt.
     volumes:
       - app_logs:/app/logs
-    depends_on:
-      db:
-        condition: service_healthy
 
-  # Seeders on demand: `docker compose run --rm seed`. Dev settings (DEBUG on)
-  # only for this one-off container; the "tools" profile keeps it out of `up`.
-  seed:
-    build: .
-    profiles: ["tools"]
-    env_file: .env
+  # Same port as web, so run one of them at a time.
+  web-dev:
+    <<: *app
+    profiles: ["dev"]
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      <<: *database-url
+      DJANGO_SETTINGS_MODULE: url_shortener.settings.dev
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+
+  # Seeders on demand: `docker compose run --rm seed`.
+  seed:
+    <<: *app
+    profiles: ["tools"]
+    environment:
+      <<: *database-url
       DJANGO_SETTINGS_MODULE: url_shortener.settings.dev
     command: >
       sh -c "python manage.py migrate --noinput && python manage.py seed_dev"
-    depends_on:
-      db:
-        condition: service_healthy
 
 volumes:
   postgres_data:
