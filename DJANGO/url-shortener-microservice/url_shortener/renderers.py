@@ -26,7 +26,7 @@ def envelope(status_code: int, detail: Any, message: str = "") -> dict[str, Any]
 
 
 class EnvelopeJSONRenderer(JSONRenderer):
-    """Wraps every DRF response, success or error, so no view has to.
+    """Wraps every DRF response, success or error.
 
     A view sets success toasts per method, e.g.
     ``success_messages = {"POST": "Short URL created."}``.

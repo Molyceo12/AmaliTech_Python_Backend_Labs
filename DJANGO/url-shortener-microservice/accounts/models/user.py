@@ -7,11 +7,10 @@ from django.db import models
 
 
 class User(AbstractUser):
-    """A user who logs in with email; ``tier`` sets their limits (Module 7)."""
+    """Logs in with email; ``tier`` sets the URL limits."""
 
-    # TextChoices is str + Enum, so pylint counts many parents; that's Django's design.
     class Tier(models.TextChoices):  # pylint: disable=too-many-ancestors
-        """Business tier. ``admin`` gives no admin rights: ``is_staff`` does."""
+        """Business tier only. Admin rights come from ``is_staff``."""
 
         FREE = "free", "Free"
         PREMIUM = "premium", "Premium"

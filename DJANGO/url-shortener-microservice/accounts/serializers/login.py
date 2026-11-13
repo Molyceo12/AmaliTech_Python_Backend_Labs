@@ -5,7 +5,7 @@ from typing import Any
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
-# Only checks a login and returns tokens; it never saves anything.
+# Only validates and returns tokens: no create() or update().
 class LoginSerializer(TokenObtainPairSerializer):  # pylint: disable=abstract-method
     """Email + password → access and refresh tokens.
 

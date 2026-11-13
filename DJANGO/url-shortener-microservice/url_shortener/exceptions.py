@@ -82,7 +82,7 @@ def server_error(request: HttpRequest) -> JsonResponse:
     return _json_error(500, SERVER_ERROR)
 
 
-# Only describes the error body for Swagger; it never saves anything.
+# Swagger docs only: it never saves, so no create() or update().
 class ErrorSerializer(serializers.Serializer[Any]):  # pylint: disable=abstract-method
     """Shape of every error, for the Swagger docs."""
 

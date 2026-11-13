@@ -33,7 +33,7 @@ def redirect_to_original(request: Request, short_code: str) -> HttpResponseRedir
     short_url = ShortURL.objects.filter(
         Q(short_code=short_code) | Q(custom_alias=short_code)
     ).first()
-    # Switched off looks the same as unknown: nothing to see here.
+    # Same 404 as unknown, so nobody can tell a switched-off code exists.
     if short_url is None or not short_url.is_active:
         raise NotFound("Short code not found.")
     if short_url.is_expired:

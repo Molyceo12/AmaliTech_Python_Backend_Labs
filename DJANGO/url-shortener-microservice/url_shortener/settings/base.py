@@ -128,8 +128,8 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "url_shortener.exceptions.json_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
-    # Views pick a scope with throttle_scope. "login": 5 tries per minute per IP,
-    # against password guessing. Counted in local memory (Redis in Module 8).
+    # "login": 5 tries a minute per IP, against password guessing. Counts live in
+    # local memory, so each Gunicorn worker keeps its own.
     "DEFAULT_THROTTLE_RATES": {"login": "5/min"},
 }
 # JWTs are signed with SECRET_KEY. A short access token limits the harm of a stolen
