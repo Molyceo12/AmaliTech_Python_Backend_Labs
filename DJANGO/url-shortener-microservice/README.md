@@ -40,8 +40,8 @@ graph LR
   - **Redirect** (`/<code or alias>/`): sends the visitor on (`302`) and saves a click.
   - **Analytics** (`/api/v1/analytics/<code>/`, Premium / Admin, own URLs): clicks
     per day and per country.
-  - **Auth API** (`/api/v1/auth/`): register, log in for JWT tokens (5 tries per
-    minute), refresh the access token.
+  - **Auth API** (`/api/v1/auth/`): register, log in for JWT tokens, refresh the
+    access token (rate limited, see Security).
   - **Swagger** (`/api/docs/`) and **Django admin** (`/admin/`).
   - **Renderer**: gives every JSON response the same `{status_code, message, detail}` shape.
   - **Logs**: console and `logs/app.log`, kept in the `app_logs` volume.
@@ -104,9 +104,9 @@ docker compose exec web tail -f logs/app.log        # the log file
 
 | Method | Route | What it does |
 |---|---|---|
-| `POST` | `/api/v1/auth/register/` | creates an account (`email`, `username`, `password`); new users are `free` |
+| `POST` | `/api/v1/auth/register/` | creates an account (`email`, `username`, `password`); new users are `free`; 5 tries per 3 minutes |
 | `POST` | `/api/v1/auth/login/` | `email` + `password` → `access` (15 min) and `refresh` (1 day) tokens; 5 tries per minute |
-| `POST` | `/api/v1/auth/refresh/` | `refresh` → a new `access` token |
+| `POST` | `/api/v1/auth/refresh/` | `refresh` → a new `access` token; 20 tries per minute |
 | `POST` | `/api/v1/urls/` | creates a short URL owned by you (optional alias, expiry, title, description, tags) |
 | `GET` | `/api/v1/urls/` | lists your own short URLs, 20 per page |
 | `GET` | `/api/v1/urls/<short_code or alias>/` | shows one URL with `total_clicks` (+ `clicks_by_country` for Premium / Admin) |
@@ -134,3 +134,21 @@ Using the token: every `/api/v1/urls/` call needs a login (no token → `401`; s
 else's URL → `403` on change or delete). Log in, then send the `access` token as
 `Authorization: Bearer <access>`. Register, login, refresh and the redirect are open. In Swagger, click **Authorize** and paste the
 `access` token. When it expires, get a new one from `/api/v1/auth/refresh/`.
+
+## Security
+
+- **Rate limits** (per IP, over the limit → `429` with a `Retry-After` header):
+
+  | Endpoint | Limit |
+  |---|---|
+  | login | 5 per minute |
+  | register | 5 per 3 minutes |
+  | refresh | 20 per minute |
+
+  A view is limited only if it sets `throttle_scope`; the rates are in
+  `DEFAULT_THROTTLE_RATES`. The redirect and the URL APIs are never limited.
+- **`SECRET_KEY`** signs the JWTs: under 32 characters the app refuses to start.
+- **HTTPS in production** (`settings/prod.py`), switched on from `.env` on a real server
+  (off by default, so local Docker on `http://localhost` keeps working):
+  `SECURE_SSL_REDIRECT`, `SECURE_COOKIES`, `SECURE_HSTS_SECONDS`. Check with
+  `python manage.py check --deploy`.

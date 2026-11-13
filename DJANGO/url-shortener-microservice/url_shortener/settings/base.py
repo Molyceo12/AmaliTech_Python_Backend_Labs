@@ -9,11 +9,15 @@ from pathlib import Path
 
 import dj_database_url
 from decouple import Csv, config
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # No default: the app must not start with a guessable key.
 SECRET_KEY: str = config("SECRET_KEY")
+# It signs the JWTs (HS256); a short key can be brute-forced, then tokens can be faked.
+if len(SECRET_KEY) < 32:
+    raise ImproperlyConfigured("SECRET_KEY must be at least 32 characters.")
 DEBUG = False
 ALLOWED_HOSTS: list[str] = config("ALLOWED_HOSTS", default="localhost", cast=Csv())
 
@@ -128,9 +132,15 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "url_shortener.exceptions.json_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
-    # "login": 5 tries a minute per IP, against password guessing. Counts live in
-    # local memory, so each Gunicorn worker keeps its own.
-    "DEFAULT_THROTTLE_RATES": {"login": "5/min"},
+    # Only views with a throttle_scope are limited, per IP. "login" is against
+    # password guessing. Counts live in local memory, so each Gunicorn worker
+    # keeps its own.
+    "DEFAULT_THROTTLE_CLASSES": ["url_shortener.throttles.ScopedMinutesThrottle"],
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "5/min",
+        "register": "5/3min",
+        "refresh": "20/min",
+    },
 }
 # JWTs are signed with SECRET_KEY. A short access token limits the harm of a stolen
 # one; the refresh token gets a new access token without logging in again.

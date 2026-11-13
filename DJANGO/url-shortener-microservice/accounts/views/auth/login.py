@@ -1,7 +1,6 @@
 """``POST /api/v1/auth/login/``: email + password → tokens."""
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from accounts.serializers import LoginSerializer
@@ -21,6 +20,5 @@ class LoginView(TokenObtainPairView):
     """
 
     serializer_class = LoginSerializer
-    throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
     success_messages = {"POST": "Logged in."}

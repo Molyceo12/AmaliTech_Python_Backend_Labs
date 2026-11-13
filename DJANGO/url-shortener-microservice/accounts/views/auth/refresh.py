@@ -9,10 +9,11 @@ from url_shortener.exceptions import ErrorSerializer
 @extend_schema(
     responses={
         200: TokenRefreshView.serializer_class,
-        **dict.fromkeys([400, 401, 500], ErrorSerializer),
+        **dict.fromkeys([400, 401, 429, 500], ErrorSerializer),
     }
 )
 class RefreshView(TokenRefreshView):
-    """A ``refresh`` token → a new ``access`` token."""
+    """A ``refresh`` token → a new ``access`` token. 20 tries per minute per IP."""
 
+    throttle_scope = "refresh"
     success_messages = {"POST": "Token refreshed."}

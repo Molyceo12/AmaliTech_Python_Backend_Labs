@@ -6,6 +6,8 @@ import pytest
 from django.test import Client
 
 from accounts.models import User
+from tests.helpers import make_url
+from url_shortener.throttles import ScopedMinutesThrottle
 
 pytestmark = pytest.mark.django_db
 
@@ -118,6 +120,42 @@ def test_sixth_login_in_a_minute_gets_429(client: Client) -> None:
     response = _login(client)
     assert response.status_code == 429
     assert response.json()["message"].startswith("Request was throttled.")
+
+
+@pytest.mark.parametrize(
+    ("path", "limit"),
+    [("/api/v1/auth/register/", 5), ("/api/v1/auth/refresh/", 20)],
+)
+def test_call_over_the_limit_in_a_minute_gets_429(
+    client: Client, path: str, limit: int
+) -> None:
+    """Register: 5 tries per 3 minutes per IP; refresh: 20 per minute."""
+    for _ in range(limit):
+        assert client.post(path, {}, content_type="application/json").status_code == 400
+    response = client.post(path, {}, content_type="application/json")
+    assert response.status_code == 429
+
+
+def test_register_block_lasts_3_minutes(
+    client: Client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Still refused 2 minutes later; allowed again after 3."""
+    now = [1000.0]
+    monkeypatch.setattr(ScopedMinutesThrottle, "timer", lambda self: now[0])
+    path = "/api/v1/auth/register/"
+    for _ in range(5):
+        client.post(path, {}, content_type="application/json")
+    now[0] += 120
+    assert client.post(path, {}, content_type="application/json").status_code == 429
+    now[0] += 61
+    assert client.post(path, {}, content_type="application/json").status_code == 400
+
+
+def test_redirect_is_never_rate_limited(client: Client) -> None:
+    """Public short links always work: 25 visits in a row all redirect."""
+    make_url()
+    for _ in range(25):
+        assert client.get("/abc1234/").status_code == 302
 
 
 def test_bad_tokens_get_401(client: Client) -> None:
