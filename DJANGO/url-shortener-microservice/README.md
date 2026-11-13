@@ -107,6 +107,7 @@ docker compose exec web tail -f logs/app.log        # the log file
 | `POST` | `/api/v1/auth/register/` | creates an account (`email`, `username`, `password`); new users are `free`; 5 tries per 3 minutes |
 | `POST` | `/api/v1/auth/login/` | `email` + `password` → `access` (15 min) and `refresh` (1 day) tokens; 5 tries per minute |
 | `POST` | `/api/v1/auth/refresh/` | `refresh` → a new `access` token; 20 tries per minute |
+| `POST` | `/api/v1/account/upgrade/` | `payment_id` + `plan` (`premium`) → a Free user becomes `premium` (login needed) |
 | `POST` | `/api/v1/urls/` | creates a short URL owned by you (optional alias, expiry, title, description, tags) |
 | `GET` | `/api/v1/urls/` | lists your own short URLs, 20 per page |
 | `GET` | `/api/v1/urls/<short_code or alias>/` | shows one URL with `total_clicks` (+ `clicks_by_country` for Premium / Admin) |
@@ -127,6 +128,9 @@ Tier rules (`403` when broken):
 | Active URLs (switched on, not expired) | max 10 | unlimited |
 | Custom alias | no | yes |
 | Analytics | no | yes |
+
+Upgrade: a Free user sends a `payment_id` and `plan: premium` to `/api/v1/account/upgrade/`. The id is a
+placeholder and is not checked yet. Premium and Admin users can't upgrade (`400`).
 
 Only `http` and `https` URLs are accepted; other schemes get `400`.
 
